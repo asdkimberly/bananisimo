@@ -900,13 +900,18 @@ async function cancelarPedido() {
 function openWhatsApp() {
   const o = allOrders.find(x => x.id === currentOrderId);
   if (!o || !o.client_phone) return;
-  const prod = products.find(p => p.id === o.product_id);
+  const prod  = products.find(p => p.id === o.product_id);
+  const cycle = CYCLES.find(c => c.id === o.cycle_id);
   const clean = o.client_phone.replace(/\D/g, '');
+  const firstName = o.client_name.trim().split(' ')[0];
+  const diaEntrega = cycle ? cycle.entrega : 'el día de entrega';
   const msg = encodeURIComponent(
-    `Hola ${o.client_name} 🍌 Te confirmo tu pedido de Bananísimo:\n\n` +
+    `Hola ${firstName} 🍌 Te confirmamos tu pedido de Bananísimo:\n\n` +
     `📦 ${prod?.name || o.product_id} × ${o.qty}\n` +
     `💰 Total: ${formatPrice(o.qty * o.price)}\n\n` +
-    `Te aviso cuando esté listo. ¡Muchas gracias! 🤎`
+    `La entrega se realizará el ${diaEntrega}. ` +
+    `Por favor compartinos la ubicación donde querés recibir tu pancito 📍\n\n` +
+    `¡Que tengás un bonito día! 🤎`
   );
   window.open(`https://wa.me/506${clean}?text=${msg}`, '_blank');
 }
