@@ -497,6 +497,7 @@ function openOrderModal(orderId){
       ${o.status==='confirmado'?`<button class="btn-status btn-entregar" id="btnEntregar" onclick="updateOrderStatus('entregado')">📦 Marcar como entregado</button>`:''}
       ${o.client_phone?`<button class="btn-status" style="background:#d4edda;color:#155724;" onclick="openWhatsApp()">💬 Mensaje de WhatsApp</button>`:''}
       ${o.status!=='entregado'&&o.status!=='cancelado'?`<button class="btn-status btn-delete" onclick="cancelarPedido()">Cancelar pedido</button>`:''}
+      <button class="btn-status" style="background:transparent;color:#999;border:0.5px solid #ddd;font-size:12px;padding:10px;" onclick="eliminarPedido()">🗑 Eliminar pedido permanentemente</button>
       <button class="btn-close-modal" onclick="closeModal()">Cerrar</button>
     </div>`;
   document.getElementById('modalOverlay').classList.add('open');
@@ -522,6 +523,19 @@ async function cancelarPedido(){
   if(!confirm('¿Cancelar este pedido?'))return;
   try{const{error}=await sb.from('orders').update({status:'cancelado'}).eq('id',currentOrderId);if(error)throw error;closeModal();showToast('Pedido cancelado');}
   catch(e){showError('Error: '+e.message);}
+}
+async function eliminarPedido(){
+  const o=allOrders.find(x=>x.id===currentOrderId);
+  if(!o)return;
+  if(!confirm(`¿Eliminar el pedido de ${o.client_name} permanentemente?\nEsta acción no se puede deshacer.`))return;
+  try{
+    // Borrar pagos asociados primero
+    await sb.from('payments').delete().eq('order_id',currentOrderId);
+    const{error}=await sb.from('orders').delete().eq('id',currentOrderId);
+    if(error)throw error;
+    closeModal();
+    showToast('🗑 Pedido eliminado');
+  }catch(e){showError('Error: '+e.message);}
 }
 function openWhatsApp(){
   const o=allOrders.find(x=>x.id===currentOrderId);if(!o||!o.client_phone)return;
