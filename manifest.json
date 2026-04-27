@@ -2,22 +2,13 @@
   "name": "Bananísimo · Gestión",
   "short_name": "Bananísimo",
   "description": "Sistema de gestión de pedidos para Bananísimo",
-  "start_url": "/",
+  "start_url": "/bananisimo/",
+  "scope": "/bananisimo/",
   "display": "standalone",
   "background_color": "#f5f0e8",
   "theme_color": "#412402",
   "icons": [
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }

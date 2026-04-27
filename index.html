@@ -248,10 +248,28 @@ const METODOS={sinpe:'SINPE',efectivo:'Efectivo',transferencia:'Transferencia'};
 let sb=null,products=[],allOrders=[],ingredients=[],allPayments=[];
 let currentFilter='all',newQty=1,currentOrderId=null,currentIngId=null;
 let currentScreen='dashboard',paymentMethod='sinpe',ingMoveType='compra';
+let dashboardView='week'; // 'week' | 'month' | 'custom'
 let dashboardWeekOffset=0;
+let dashboardMonthOffset=0;
+let customFrom='',customTo='';
+
 function getOffsetWeekKey(offset){const d=new Date();d.setDate(d.getDate()+offset*7);return getWeekKey(d);}
 function navWeek(delta){dashboardWeekOffset+=delta;if(dashboardWeekOffset>0)dashboardWeekOffset=0;renderDashboard();}
 function weekLabel(o){if(o===0)return'Esta semana';if(o===-1)return'Semana pasada';return'Hace '+Math.abs(o)+' semanas';}
+function getMonthRange(offset){
+  const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+offset);
+  const y=d.getFullYear(),m=d.getMonth();
+  const from=new Date(y,m,1).toISOString().slice(0,10);
+  const to=new Date(y,m+1,0).toISOString().slice(0,10);
+  const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  return{from,to,label:months[m]+' '+y};
+}
+function ordersInRange(from,to){
+  return allOrders.filter(o=>{
+    const d=o.order_date||o.created_at.slice(0,10);
+    return d>=from&&d<=to;
+  });
+}
 
 function loadConfig(){return{url:localStorage.getItem('sb_url')||'',key:localStorage.getItem('sb_key')||''};}
 function saveConfig(){
@@ -303,7 +321,11 @@ function hideEl(id){const el=document.getElementById(id);if(el){el.classList.add
 function getWeekKey(d=new Date()){const x=new Date(d);const day=x.getDay();x.setDate(x.getDate()-day+(day===0?-6:1));return x.toISOString().slice(0,10);}
 function formatPrice(n){return'₡'+Number(n).toLocaleString('es-CR');}
 function getInitials(n){return(n||'?').trim().split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();}
-function weekOrders(wk){return allOrders.filter(o=>o.week_key===wk);}
+function weekOrders(wk){return allOrders.filter(o=>{
+  // Soportar tanto week_key legacy como order_date nuevo
+  if(o.order_date) return getWeekKey(new Date(o.order_date+'T12:00:00'))===wk;
+  return o.week_key===wk;
+});}
 function activeOrders(orders){return orders.filter(o=>o.status!=='cancelado');}
 function orderPayments(id){return allPayments.filter(p=>p.order_id===id);}
 function orderPaidAmount(id){return orderPayments(id).reduce((s,p)=>s+p.amount,0);}
@@ -331,54 +353,90 @@ function renderScreen(name){const map={dashboard:renderDashboard,orders:renderOr
 function rerenderCurrent(){renderScreen(currentScreen);}
 
 function renderDashboard(){
-  const wk=getOffsetWeekKey(dashboardWeekOffset),wo=weekOrders(wk),active=activeOrders(wo);
-  const isNow=dashboardWeekOffset===0;
+  const el=document.getElementById('screen-dashboard');
+  const isNow=dashboardWeekOffset===0&&dashboardView==='week';
+
+  // ── compute orders for current view ──
+  let viewOrders,viewLabel,canNext=false;
+  if(dashboardView==='week'){
+    const wk=getOffsetWeekKey(dashboardWeekOffset);
+    viewOrders=weekOrders(wk);
+    viewLabel=weekLabel(dashboardWeekOffset);
+    canNext=dashboardWeekOffset<0;
+  } else if(dashboardView==='month'){
+    const{from,to,label}=getMonthRange(dashboardMonthOffset);
+    viewOrders=ordersInRange(from,to);
+    viewLabel=label;
+    canNext=dashboardMonthOffset<0;
+  } else {
+    // custom
+    viewOrders=(customFrom&&customTo)?ordersInRange(customFrom,customTo):[];
+    viewLabel=customFrom&&customTo?customFrom+' → '+customTo:'Seleccioná rango';
+    canNext=false;
+  }
+
+  const active=activeOrders(viewOrders);
   const totalPanes=active.reduce((s,o)=>s+o.qty,0);
   const pct=Math.min(100,Math.round((totalPanes/MAX_SEMANA)*100));
   const slots=Array.from({length:MAX_SEMANA},(_,i)=>i<totalPanes);
-  const ingresos=wo.filter(o=>o.status==='entregado').reduce((s,o)=>s+o.qty*o.price,0);
-  const porCobrar=wo.filter(o=>['pendiente','confirmado'].includes(o.status)).reduce((s,o)=>s+o.qty*o.price,0);
-  const today=new Date();
-  const months=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const ingresos=viewOrders.filter(o=>o.status==='entregado').reduce((s,o)=>s+o.qty*o.price,0);
+  const porCobrar=viewOrders.filter(o=>['pendiente','confirmado'].includes(o.status)).reduce((s,o)=>s+o.qty*o.price,0);
   const alertas=ingredients.filter(i=>ingStatus(i)!=='ok');
-  const el=document.getElementById('screen-dashboard');
-  const navBtn='background:rgba(255,255,255,0.14);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer;font-family:monospace;';
-  const navBtnOff='opacity:0.25;background:transparent;border:0.5px solid rgba(255,255,255,0.1);color:var(--crema);border-radius:8px;width:34px;height:34px;font-size:18px;cursor:default;font-family:monospace;';
+
+  const navBtnStyle='background:rgba(255,255,255,0.14);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer;';
+  const navBtnOff='opacity:0.25;background:transparent;border:0.5px solid rgba(255,255,255,0.1);color:var(--crema);border-radius:8px;width:34px;height:34px;font-size:18px;cursor:default;';
+
+  const customFields=dashboardView==='custom'?`
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <input type="date" id="dash_from" value="${customFrom}" onchange="customFrom=this.value;renderDashboard()"
+        style="flex:1;background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;padding:6px 10px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:600;outline:none;">
+      <span style="color:var(--banano);line-height:32px;">→</span>
+      <input type="date" id="dash_to" value="${customTo}" onchange="customTo=this.value;renderDashboard()"
+        style="flex:1;background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;padding:6px 10px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:600;outline:none;">
+    </div>`:'';
+
   el.innerHTML=`
     <div class="week-header">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div>
-          <p class="wh-label">${isNow?'Semana del '+today.getDate()+' de '+months[today.getMonth()]:wk}</p>
-          <p class="wh-title">${weekLabel(dashboardWeekOffset)}</p>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <button onclick="navWeek(-1)" style="${navBtn}">←</button>
-          <button onclick="navWeek(1)" ${isNow?'disabled':''}  style="${isNow?navBtnOff:navBtn}">→</button>
-        </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        ${['week','month','custom'].map(v=>`
+          <button onclick="dashboardView='${v}';dashboardWeekOffset=0;dashboardMonthOffset=0;renderDashboard()"
+            style="flex:1;padding:5px 4px;border-radius:8px;border:0.5px solid rgba(255,255,255,${dashboardView===v?'0.5':'0.2'});background:${dashboardView===v?'rgba(239,159,39,0.25)':'transparent'};color:${dashboardView===v?'var(--banano)':'rgba(250,238,218,0.6)'};font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;">
+            ${v==='week'?'Semana':v==='month'?'Mes':'Rango'}
+          </button>`).join('')}
       </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <p class="wh-title" style="font-size:15px;">${viewLabel}</p>
+        ${dashboardView!=='custom'?`<div style="display:flex;gap:6px;">
+          <button onclick="${dashboardView==='week'?'navWeek(-1)':'navMonth(-1)'}" style="${navBtnStyle}">←</button>
+          <button onclick="${dashboardView==='week'?'navWeek(1)':'navMonth(1)'}" ${!canNext?'disabled':''} style="${canNext?navBtnStyle:navBtnOff}">→</button>
+        </div>`:''}
+      </div>
+      ${customFields}
     </div>
     ${isNow&&alertas.length>0?`<div class="alert-banner" onclick="showScreen('stock',document.getElementById('nav-stock'))">
       <div class="alert-banner-title">⚠️ ${alertas.length} ingrediente${alertas.length>1?'s':''} requiere${alertas.length>1?'n':''} atención</div>
       <div class="alert-banner-text">${alertas.slice(0,3).map(i=>`${i.name} (${ingStatus(i)==='critico'?'crítico':'alerta'})`).join(' · ')}${alertas.length>3?` · +${alertas.length-3} más`:''}</div>
     </div>`:''}
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-val">${totalPanes}<span style="font-size:14px;color:var(--text-muted);">/${MAX_SEMANA}</span></div><div class="stat-label">Panes</div><div class="stat-sub">${totalPanes>=MAX_SEMANA?'Semana llena':MAX_SEMANA-totalPanes+' disponibles'}</div></div>
-      <div class="stat-card"><div class="stat-val">${active.length}</div><div class="stat-label">Pedidos</div><div class="stat-sub">${wo.filter(o=>o.status==='entregado').length} entregados</div></div>
+      <div class="stat-card"><div class="stat-val">${totalPanes}<span style="font-size:14px;color:var(--text-muted);">/${dashboardView==='week'?MAX_SEMANA:'∞'}</span></div><div class="stat-label">Panes</div><div class="stat-sub">${active.length} pedidos</div></div>
+      <div class="stat-card"><div class="stat-val">${viewOrders.filter(o=>o.status==='entregado').length}</div><div class="stat-label">Entregados</div><div class="stat-sub">${viewOrders.filter(o=>o.status==='cancelado').length} cancelados</div></div>
       <div class="stat-card"><div class="stat-val" style="font-size:18px;">${formatPrice(ingresos)}</div><div class="stat-label">Cobrado</div><div class="stat-sub">Entregados</div></div>
       <div class="stat-card"><div class="stat-val" style="font-size:18px;">${formatPrice(porCobrar)}</div><div class="stat-label">Por cobrar</div><div class="stat-sub">Activos</div></div>
     </div>
-    <div class="capacity-bar-wrap">
-      <div class="cap-row"><p class="cap-label">Capacidad ${isNow?'semanal':'(semana pasada)'}</p><p class="cap-count">${totalPanes}<span>/${MAX_SEMANA} panes</span></p></div>
+    ${dashboardView==='week'?`<div class="capacity-bar-wrap">
+      <div class="cap-row"><p class="cap-label">Capacidad semanal</p><p class="cap-count">${totalPanes}<span>/${MAX_SEMANA} panes</span></p></div>
       <div class="bar-track"><div class="bar-fill ${totalPanes>=MAX_SEMANA?'warn':''}" style="width:${pct}%"></div></div>
       <div class="bar-slots">${slots.map(u=>`<div class="slot ${u?(totalPanes>=MAX_SEMANA?'used warn':'used'):''}"></div>`).join('')}</div>
-    </div>
-    <span class="sec-label">${isNow?'Pedidos activos':'Todos los pedidos'}</span>
+    </div>`:''}
+    <span class="sec-label">${isNow?'Pedidos activos':'Pedidos del período'}</span>
     ${(isNow?active.filter(o=>['pendiente','confirmado'].includes(o.status)):active).length===0
-      ?`<div class="empty-state"><div class="e-icon">📋</div><div class="e-title">Sin pedidos</div><div class="e-text">${isNow?'Usá el botón + para agregar.':'No hay pedidos para esta semana.'}</div></div>`
+      ?`<div class="empty-state"><div class="e-icon">📋</div><div class="e-title">Sin pedidos</div><div class="e-text">${isNow?'Usá el botón + para agregar.':'No hay pedidos para este período.'}</div></div>`
       :(isNow?active.filter(o=>['pendiente','confirmado'].includes(o.status)):active).map(o=>orderCardHTML(o)).join('')}
   `;
   attachOrderCards(el);
 }
+function navMonth(delta){dashboardMonthOffset+=delta;if(dashboardMonthOffset>0)dashboardMonthOffset=0;renderDashboard();}
+
 
 function renderOrders(){
   const filtered=currentFilter==='all'?allOrders:allOrders.filter(o=>o.status===currentFilter);
@@ -413,15 +471,18 @@ function orderCardHTML(o){
 function attachOrderCards(container){container.querySelectorAll('.order-card').forEach(card=>card.addEventListener('click',()=>openOrderModal(card.dataset.id)));}
 
 function renderNew(){
-  const selectedWk=document.getElementById('fn_week')?document.getElementById('fn_week').value:getWeekKey();
-  const wk=selectedWk||getWeekKey(),totalPanes=activeOrders(weekOrders(wk)).reduce((s,o)=>s+o.qty,0),available=MAX_SEMANA-totalPanes;
+  const today=new Date().toISOString().slice(0,10);
+  const selDate=document.getElementById('fn_date')?document.getElementById('fn_date').value:today;
+  const dateVal=selDate||today;
+  const wk=getWeekKey(new Date(dateVal+'T12:00:00'));
+  const totalPanes=activeOrders(weekOrders(wk)).reduce((s,o)=>s+o.qty,0),available=MAX_SEMANA-totalPanes;
   const el=document.getElementById('screen-new');
   if(available<=0){el.innerHTML=`<div class="form-card" style="text-align:center;padding:30px 18px;"><div style="font-size:40px;margin-bottom:12px;">🍌</div><div class="form-title" style="text-align:center;">Semana llena</div><p style="font-size:13px;color:var(--text-muted);margin-top:8px;line-height:1.6;">Alcanzaste el máximo de ${MAX_SEMANA} panes esta semana.</p></div>`;return;}
   newQty=Math.min(newQty,available);
   el.innerHTML=`<div class="form-card">
     <p class="form-title">Nuevo pedido</p>
-    <div style="background:var(--crema);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:16px;font-size:12px;font-weight:700;color:var(--cacao);">🍞 Disponible: <span style="color:var(--dorado);">${available} de ${MAX_SEMANA} panes</span></div>
-    <div class="form-group"><label class="form-label">Semana del pedido</label><select class="form-input" id="fn_week" onchange="renderNew()">${[0,-1,-2].map(o=>{const k=getOffsetWeekKey(o);return`<option value="${k}" ${k===wk?'selected':''}>${weekLabel(o)} (${k})</option>`;}).join('')}</select></div>
+    <div style="background:var(--crema);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:16px;font-size:12px;font-weight:700;color:var(--cacao);">🍞 Semana del ${wk} · <span style="color:${available<=0?'var(--rojo)':'var(--dorado)'};">${available<=0?'Sin disponibilidad':available+' de '+MAX_SEMANA+' disponibles'}</span></div>
+    <div class="form-group"><label class="form-label">Fecha del pedido</label><input class="form-input" id="fn_date" type="date" value="${dateVal}" max="${new Date().toISOString().slice(0,10)}" onchange="renderNew()"></div>
     <div class="form-group"><label class="form-label">Nombre del cliente</label><input class="form-input" id="fn_name" type="text" placeholder="Ej: María Rodríguez" autocomplete="off"></div>
     <div class="form-group"><label class="form-label">WhatsApp (opcional)</label><input class="form-input" id="fn_phone" type="tel" placeholder="8888-8888"></div>
     <div class="form-group"><label class="form-label">Producto</label><select class="form-input" id="fn_product" onchange="updateTotal()">${products.map(p=>`<option value="${p.id}" data-price="${p.price}">${p.name} — ${formatPrice(p.price)}</option>`).join('')}</select></div>
@@ -448,8 +509,10 @@ async function saveOrder(){
   const btn=document.getElementById('btnSaveOrder');
   btn.disabled=true;btn.innerHTML='<div class="spinner" style="width:18px;height:18px;border-width:2px;border-color:var(--banano);border-top-color:transparent;"></div> Guardando...';
   try{
-    const selWk=document.getElementById('fn_week');const weekKey=selWk?selWk.value:getWeekKey();
-    const{error}=await sb.from('orders').insert({client_name:name,client_phone:phone||null,product_id:productId,qty:newQty,price:prod.price,cycle_id:cycleId,notes:notes||null,status:'pendiente',week_key:weekKey});
+    const dateEl=document.getElementById('fn_date');
+    const orderDate=dateEl?dateEl.value:new Date().toISOString().slice(0,10);
+    const weekKey=getWeekKey(new Date(orderDate+'T12:00:00'));
+    const{error}=await sb.from('orders').insert({client_name:name,client_phone:phone||null,product_id:productId,qty:newQty,price:prod.price,cycle_id:cycleId,notes:notes||null,status:'pendiente',week_key:weekKey,order_date:orderDate});
     if(error)throw error;
     showToast('✓ Pedido guardado');newQty=1;showScreen('dashboard',document.getElementById('nav-dashboard'));
   }catch(e){showError('Error: '+e.message);btn.disabled=false;btn.innerHTML='Guardar pedido';}
@@ -663,7 +726,7 @@ function resetConfig(){if(!confirm('¿Borrar las credenciales y reconfigurar?'))
 // SERVICE WORKER — auto-actualización
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('/bananisimo/sw.js').then(reg=>{
+    navigator.serviceWorker.register('/bananisimo/sw.js', {scope: '/bananisimo/'}).then(reg=>{
       reg.addEventListener('updatefound',()=>{
         const nw=reg.installing;
         nw.addEventListener('statechange',()=>{
