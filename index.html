@@ -543,7 +543,7 @@ function openOrderModal(orderId){
         <span>Cobrado: <strong style="color:var(--hoja);">${formatPrice(paid)}</strong></span>
         <span>Pendiente: <strong style="color:${pendPago>0?'var(--rojo)':'var(--hoja)'};">${formatPrice(pendPago)}</strong></span>
       </div>
-      ${pagos.length>0?`<div style="background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;">${pagos.map(p=>`<div class="payment-row"><div><div class="payment-method">${METODOS[p.method]||p.method}</div><div class="payment-date">${new Date(p.created_at).toLocaleDateString('es-CR',{day:'numeric',month:'short'})}</div></div><div class="payment-amount">+${formatPrice(p.amount)}</div></div>`).join('')}</div>`:''}
+      ${pagos.length>0?`<div style="background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;">${pagos.map(p=>`<div class="payment-row"><div><div class="payment-method">${METODOS[p.method]||p.method}</div><div class="payment-date">${new Date((p.payment_date||p.created_at).slice(0,10)+'T12:00:00').toLocaleDateString('es-CR',{day:'numeric',month:'short'})}</div></div><div class="payment-amount">+${formatPrice(p.amount)}</div></div>`).join('')}</div>`:''}
       ${pendPago>0?`<div style="background:var(--bg);border-radius:var(--radius-sm);padding:12px;margin-bottom:4px;">
         <p style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Registrar pago</p>
         <div class="method-pills">
@@ -559,6 +559,7 @@ function openOrderModal(orderId){
       ${o.status==='pendiente'?`<button class="btn-status btn-confirmar" id="btnConfirmar" onclick="updateOrderStatus('confirmado')">✓ Confirmar pedido</button>`:''}
       ${o.status==='confirmado'?`<button class="btn-status btn-entregar" id="btnEntregar" onclick="updateOrderStatus('entregado')">📦 Marcar como entregado</button>`:''}
       ${o.client_phone?`<button class="btn-status" style="background:#d4edda;color:#155724;" onclick="openWhatsApp()">💬 Mensaje de WhatsApp</button>`:''}
+      <button class="btn-status" style="background:var(--crema);color:var(--cacao);border:0.5px solid var(--border-strong);" onclick="openEditPanel()">✏️ Editar pedido</button>
       ${o.status!=='entregado'&&o.status!=='cancelado'?`<button class="btn-status btn-delete" onclick="cancelarPedido()">Cancelar pedido</button>`:''}
       <button class="btn-status" style="background:transparent;color:#999;border:0.5px solid #ddd;font-size:12px;padding:10px;" onclick="eliminarPedido()">🗑 Eliminar pedido permanentemente</button>
       <button class="btn-close-modal" onclick="closeModal()">Cerrar</button>
@@ -620,6 +621,104 @@ function openWhatsApp(){
   window.open(`https://wa.me/506${clean}?text=${msg}`,'_blank');
 }
 function closeModal(e){if(e&&e.target!==document.getElementById('modalOverlay'))return;document.getElementById('modalOverlay').classList.remove('open');}
+
+function openEditPanel(){
+  const o=allOrders.find(x=>x.id===currentOrderId);if(!o)return;
+  const pagos=orderPayments(currentOrderId);
+  const orderDate=o.order_date||o.created_at.slice(0,10);
+  const today=new Date().toISOString().slice(0,10);
+
+  // Panel de edición — reemplaza contenido del modal
+  document.getElementById('modalContent').innerHTML=`
+    <p class="modal-title" style="margin-bottom:16px;">✏️ Editar pedido</p>
+    <p style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Cliente</p>
+    <p style="font-size:14px;font-weight:700;color:var(--cacao);margin-bottom:16px;">${o.client_name}</p>
+
+    <div class="form-group">
+      <label class="form-label">Fecha del pedido</label>
+      <input class="form-input" id="edit_date" type="date" value="${orderDate}" max="${today}">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Ciclo de entrega</label>
+      <select class="form-input" id="edit_cycle">
+        ${CYCLES.map(c=>`<option value="${c.id}" ${o.cycle_id===c.id?'selected':''}>${c.label} → entrega ${c.entrega}</option>`).join('')}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Notas</label>
+      <input class="form-input" id="edit_notes" type="text" value="${o.notes||''}" placeholder="Sin notas">
+    </div>
+
+    ${pagos.length>0?`
+    <div style="margin-bottom:16px;">
+      <label class="form-label">Fecha de pagos registrados</label>
+      <div style="background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;">
+        ${pagos.map((p,idx)=>`
+          <div class="payment-row" style="align-items:center;">
+            <div>
+              <div class="payment-method">${METODOS[p.method]||p.method} · ${formatPrice(p.amount)}</div>
+            </div>
+            <input type="date" id="edit_pay_${p.id}" value="${(p.payment_date||p.created_at.slice(0,10))}"
+              style="border:0.5px solid var(--border-strong);border-radius:var(--radius-sm);padding:5px 8px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:600;color:var(--text);background:var(--white);outline:none;max-width:140px;">
+          </div>`).join('')}
+      </div>
+    </div>`:''}
+
+    <div class="modal-actions">
+      <button class="btn-status btn-entregar" onclick="saveOrderEdit()">Guardar cambios</button>
+      <button class="btn-close-modal" onclick="openOrderModal(currentOrderId)">← Volver</button>
+    </div>
+  `;
+}
+
+async function saveOrderEdit(){
+  const btn=event.target;btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    const newDate=document.getElementById('edit_date').value;
+    const newCycle=document.getElementById('edit_cycle').value;
+    const newNotes=document.getElementById('edit_notes').value.trim();
+    const newWeekKey=getWeekKey(new Date(newDate+'T12:00:00'));
+
+    // Actualizar pedido
+    const{error:eo}=await sb.from('orders').update({
+      order_date:newDate,
+      cycle_id:newCycle,
+      notes:newNotes||null,
+      week_key:newWeekKey,
+    }).eq('id',currentOrderId);
+    if(eo)throw eo;
+
+    // Actualizar fecha de cada pago si cambió
+    const pagos=orderPayments(currentOrderId);
+    for(const p of pagos){
+      const el=document.getElementById('edit_pay_'+p.id);
+      if(!el)continue;
+      const newPayDate=el.value;
+      if(newPayDate&&newPayDate!==p.created_at.slice(0,10)){
+        const{error:ep}=await sb.from('payments').update({
+          payment_date:newPayDate
+        }).eq('id',p.id);
+        if(ep)throw ep;
+        // actualizar local
+        const pi=allPayments.findIndex(x=>x.id===p.id);
+        if(pi>=0)allPayments[pi]={...allPayments[pi],payment_date:newPayDate};
+      }
+    }
+
+    // Actualizar local inmediato
+    const oi=allOrders.findIndex(x=>x.id===currentOrderId);
+    if(oi>=0)allOrders[oi]={...allOrders[oi],order_date:newDate,cycle_id:newCycle,notes:newNotes||null,week_key:newWeekKey};
+
+    showToast('✓ Pedido actualizado');
+    openOrderModal(currentOrderId);
+    rerenderCurrent();
+  }catch(e){
+    showError('Error: '+e.message);
+    btn.disabled=false;btn.textContent='Guardar cambios';
+  }
+}
 
 function renderStock(){
   const criticos=ingredients.filter(i=>ingStatus(i)==='critico');
