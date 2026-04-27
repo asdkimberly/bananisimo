@@ -529,13 +529,22 @@ async function eliminarPedido(){
   if(!o)return;
   if(!confirm(`¿Eliminar el pedido de ${o.client_name} permanentemente?\nEsta acción no se puede deshacer.`))return;
   try{
-    // Borrar pagos asociados primero
-    await sb.from('payments').delete().eq('order_id',currentOrderId);
-    const{error}=await sb.from('orders').delete().eq('id',currentOrderId);
-    if(error)throw error;
+    // 1. Borrar pagos asociados
+    const{error:ep}=await sb.from('payments').delete().eq('order_id',currentOrderId);
+    if(ep&&ep.code!=='PGRST116')throw ep;
+    // 2. Borrar el pedido
+    const{error:eo}=await sb.from('orders').delete().eq('id',currentOrderId);
+    if(eo)throw eo;
+    // 3. Actualizar estado local sin esperar realtime
+    allOrders=allOrders.filter(x=>x.id!==currentOrderId);
+    allPayments=allPayments.filter(x=>x.order_id!==currentOrderId);
     closeModal();
     showToast('🗑 Pedido eliminado');
-  }catch(e){showError('Error: '+e.message);}
+    rerenderCurrent();
+  }catch(e){
+    console.error('eliminarPedido error:',e);
+    showError('Error al eliminar: '+( e.message||e.details||JSON.stringify(e)));
+  }
 }
 function openWhatsApp(){
   const o=allOrders.find(x=>x.id===currentOrderId);if(!o||!o.client_phone)return;
