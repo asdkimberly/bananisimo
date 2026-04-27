@@ -13,28 +13,24 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
-  --cacao:#412402;--cacao-light:#5a3510;--dorado:#BA7517;--banano:#EF9F27;
+  --cacao:#412402;--dorado:#BA7517;--banano:#EF9F27;
   --crema:#FAEEDA;--crema-dark:#f0e0c0;--hoja:#3B6D11;--rojo:#c0392b;--amarillo:#d4a017;
-  --bg:#f5f0e8;--white:#ffffff;--text:#2C2C2A;--text-muted:#888780;
+  --bg:#f5f0e8;--white:#fff;--text:#2C2C2A;--text-muted:#888780;
   --border:rgba(44,44,42,0.12);--border-strong:rgba(44,44,42,0.22);
   --radius:14px;--radius-sm:9px;
 }
 body{font-family:'Quicksand',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:80px;}
-/* TOPBAR */
 .topbar{background:var(--cacao);padding:14px 18px 12px;position:sticky;top:0;z-index:100;}
 .topbar-row{display:flex;align-items:center;justify-content:space-between;}
-.logo{font-size:20px;font-weight:700;color:var(--banano);letter-spacing:-0.01em;}
+.logo{font-size:20px;font-weight:700;color:var(--banano);}
 .logo span{color:var(--crema);}
 .cycle-pill{background:rgba(239,159,39,0.18);border:0.5px solid rgba(239,159,39,0.35);color:var(--banano);font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:0.06em;text-transform:uppercase;}
-/* NAV */
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--white);border-top:0.5px solid var(--border-strong);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom);}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;background:none;border:none;cursor:pointer;color:var(--text-muted);font-family:'Quicksand',sans-serif;font-size:9px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;transition:color 0.15s;position:relative;}
 .nav-btn.active{color:var(--dorado);}
 .nav-btn svg{width:20px;height:20px;}
 .nav-badge{position:absolute;top:6px;right:calc(50% - 16px);background:var(--rojo);color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
-/* SCREENS */
 .screen{display:none;padding:16px;}.screen.active{display:block;}
-/* LOADING */
 .loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:14px;transition:opacity 0.3s;}
 .loading-overlay.hidden{opacity:0;pointer-events:none;}
 .loading-logo{font-size:28px;font-weight:700;color:var(--cacao);}
@@ -42,7 +38,7 @@ body{font-family:'Quicksand',sans-serif;background:var(--bg);color:var(--text);m
 .loading-sub{font-size:12px;color:var(--text-muted);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;}
 .spinner{width:28px;height:28px;border:3px solid var(--crema-dark);border-top-color:var(--dorado);border-radius:50%;animation:spin 0.8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.error-banner{background:#fff3cd;border:0.5px solid #ffc107;border-radius:var(--radius-sm);padding:12px 14px;margin:16px 16px 0;font-size:13px;color:#664d03;font-weight:600;display:none;line-height:1.5;}
+.error-banner{background:#fff3cd;border:0.5px solid #ffc107;border-radius:var(--radius-sm);padding:12px 14px;margin:0 0 12px;font-size:13px;color:#664d03;font-weight:600;display:none;line-height:1.5;}
 .error-banner.show{display:block;}
 /* CONFIG */
 .config-card{background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius);padding:20px;margin:16px;}
@@ -52,15 +48,21 @@ body{font-family:'Quicksand',sans-serif;background:var(--bg);color:var(--text);m
 .config-input{width:100%;border:0.5px solid var(--border-strong);border-radius:var(--radius-sm);padding:11px 13px;font-family:'Quicksand',sans-serif;font-size:13px;font-weight:600;color:var(--text);background:var(--white);outline:none;margin-bottom:14px;transition:border-color 0.15s;}
 .config-input:focus{border-color:var(--dorado);}
 .config-note{background:var(--crema);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--cacao);line-height:1.65;margin-bottom:16px;}
-/* STATS */
-.week-header{background:var(--cacao);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;}
-.wh-label{font-size:11px;color:var(--banano);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:2px;}
-.wh-title{font-size:17px;font-weight:700;color:var(--crema);}
+/* CARDS */
+.card{background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;}
+.sec-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;display:block;}
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
 .stat-card{background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;}
-.stat-val{font-size:26px;font-weight:700;color:var(--cacao);line-height:1;margin-bottom:3px;}
+.stat-val{font-size:24px;font-weight:700;color:var(--cacao);line-height:1;margin-bottom:3px;}
 .stat-label{font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;}
 .stat-sub{font-size:11px;color:var(--dorado);font-weight:600;margin-top:2px;}
+/* WEEK HEADER */
+.week-header{background:var(--cacao);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;}
+.wh-label{font-size:11px;color:var(--banano);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:2px;}
+.wh-title{font-size:16px;font-weight:700;color:var(--crema);}
+.nav-arrow{background:rgba(255,255,255,0.14);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer;font-family:monospace;}
+.nav-arrow:disabled{opacity:0.25;cursor:default;}
+/* CAPACITY */
 .capacity-bar-wrap{background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;}
 .cap-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
 .cap-label{font-size:13px;font-weight:700;color:var(--cacao);}
@@ -73,21 +75,50 @@ body{font-family:'Quicksand',sans-serif;background:var(--bg);color:var(--text);m
 .slot{flex:1;height:6px;border-radius:3px;background:#F1EFE8;}
 .slot.used{background:var(--dorado);}
 .slot.used.warn{background:var(--rojo);}
-/* ORDERS */
-.order-card{background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:13px 14px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;transition:background 0.15s;}
+/* STAGE PIPELINE */
+.stage-track{display:flex;align-items:center;gap:0;margin-bottom:14px;overflow-x:auto;padding:2px 0;}
+.stage-track::-webkit-scrollbar{display:none;}
+.stage-step{display:flex;flex-direction:column;align-items:center;flex-shrink:0;}
+.stage-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border-strong);background:var(--white);display:flex;align-items:center;justify-content:center;font-size:12px;position:relative;z-index:1;}
+.stage-dot.done{background:var(--hoja);border-color:var(--hoja);color:#fff;}
+.stage-dot.current{background:var(--dorado);border-color:var(--dorado);color:#fff;}
+.stage-dot.cancelled{background:var(--rojo);border-color:var(--rojo);color:#fff;}
+.stage-name{font-size:9px;font-weight:700;color:var(--text-muted);margin-top:4px;text-align:center;max-width:44px;letter-spacing:0.03em;}
+.stage-name.done{color:var(--hoja);}
+.stage-name.current{color:var(--dorado);}
+.stage-name.cancelled{color:var(--rojo);}
+.stage-line{flex:1;height:2px;background:#F1EFE8;min-width:12px;}
+.stage-line.done{background:var(--hoja);}
+/* ORDER CARDS */
+.order-card{background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:13px 14px;margin-bottom:8px;cursor:pointer;transition:background 0.15s;}
 .order-card:active{background:var(--crema);}
+.order-card-top{display:flex;gap:12px;align-items:flex-start;margin-bottom:8px;}
 .order-avatar{width:38px;height:38px;border-radius:50%;background:var(--crema);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--cacao);flex-shrink:0;border:0.5px solid var(--border);}
 .order-body{flex:1;min-width:0;}
 .order-name{font-size:14px;font-weight:700;color:var(--cacao);margin-bottom:2px;}
 .order-detail{font-size:12px;color:var(--text-muted);margin-bottom:5px;}
 .order-tags{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
-.tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.05em;}
-.tag-pendiente{background:#fff3cd;color:#856404;}.tag-confirmado{background:#d4edda;color:#155724;}
-.tag-entregado{background:#F1EFE8;color:var(--text-muted);}.tag-cancelado{background:#f8d7da;color:#721c24;}
-.tag-prod{background:var(--crema);color:var(--cacao);}
-.tag-pagado{background:#d4edda;color:#155724;}.tag-parcial{background:#fff3cd;color:#856404;}.tag-sinpago{background:#f8d7da;color:#721c24;}
 .order-price{font-size:15px;font-weight:700;color:var(--cacao);flex-shrink:0;padding-top:2px;}
-.order-cycle-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--cacao);color:var(--banano);text-transform:uppercase;letter-spacing:0.05em;margin-left:4px;}
+.tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.05em;}
+.tag-recibido{background:#e8f4fd;color:#1a5276;}
+.tag-horneado{background:#fef9e7;color:#7d6608;}
+.tag-enfriado{background:#eaf2ff;color:#1a3a6b;}
+.tag-empacado{background:#f0e6ff;color:#6c3483;}
+.tag-entregado{background:#d5f5e3;color:#1e8449;}
+.tag-cancelado{background:#fde8e8;color:#922b21;}
+.tag-pagado{background:#d5f5e3;color:#1e8449;}
+.tag-parcial{background:#fef9e7;color:#7d6608;}
+.tag-sinpago{background:#fde8e8;color:#922b21;}
+.tag-prod{background:var(--crema);color:var(--cacao);}
+.order-cycle-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--cacao);color:var(--banano);margin-left:4px;}
+/* MINI STAGE IN CARD */
+.mini-stage{display:flex;align-items:center;gap:3px;}
+.mini-dot{width:8px;height:8px;border-radius:50%;background:#F1EFE8;flex-shrink:0;}
+.mini-dot.done{background:var(--hoja);}
+.mini-dot.current{background:var(--dorado);}
+.mini-dot.cancelled{background:var(--rojo);}
+.mini-line{flex:1;height:1.5px;background:#F1EFE8;min-width:6px;}
+.mini-line.done{background:var(--hoja);}
 /* FORM */
 .form-card{background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
 .form-title{font-size:17px;font-weight:700;color:var(--cacao);margin-bottom:16px;}
@@ -97,16 +128,15 @@ body{font-family:'Quicksand',sans-serif;background:var(--bg);color:var(--text);m
 .form-input:focus{border-color:var(--dorado);}
 select.form-input{cursor:pointer;}
 .qty-row{display:flex;align-items:center;gap:12px;}
-.qty-btn{width:40px;height:40px;border-radius:50%;background:var(--crema);border:0.5px solid var(--border-strong);font-size:22px;font-weight:700;color:var(--cacao);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:monospace;}
+.qty-btn{width:40px;height:40px;border-radius:50%;background:var(--crema);border:0.5px solid var(--border-strong);font-size:22px;font-weight:700;color:var(--cacao);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .qty-btn:active{background:var(--crema-dark);}
 .qty-display{font-size:24px;font-weight:700;color:var(--cacao);min-width:32px;text-align:center;}
-.btn-primary{width:100%;background:var(--cacao);color:var(--banano);border:none;border-radius:var(--radius-sm);padding:14px;font-family:'Quicksand',sans-serif;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:0.03em;transition:opacity 0.15s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-primary{width:100%;background:var(--cacao);color:var(--banano);border:none;border-radius:var(--radius-sm);padding:14px;font-family:'Quicksand',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:opacity 0.15s;display:flex;align-items:center;justify-content:center;gap:8px;}
 .btn-primary:disabled{opacity:0.6;cursor:not-allowed;}
-.btn-primary:active:not(:disabled){opacity:0.85;}
 /* FILTERS */
 .filter-row{display:flex;gap:7px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px;}
 .filter-row::-webkit-scrollbar{display:none;}
-.filter-chip{flex-shrink:0;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:700;padding:6px 14px;border-radius:20px;border:0.5px solid var(--border-strong);background:var(--white);color:var(--text-muted);cursor:pointer;text-transform:uppercase;letter-spacing:0.06em;transition:all 0.15s;}
+.filter-chip{flex-shrink:0;font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;padding:6px 12px;border-radius:20px;border:0.5px solid var(--border-strong);background:var(--white);color:var(--text-muted);cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;}
 .filter-chip.active{background:var(--cacao);color:var(--banano);border-color:var(--cacao);}
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(65,36,2,0.55);z-index:200;display:none;align-items:flex-end;justify-content:center;}
@@ -115,15 +145,23 @@ select.form-input{cursor:pointer;}
 .modal-handle{width:40px;height:4px;background:#D3D1C7;border-radius:2px;margin:0 auto 18px;}
 .modal-title{font-size:20px;font-weight:700;color:var(--cacao);margin-bottom:4px;}
 .modal-sub{font-size:13px;color:var(--text-muted);margin-bottom:18px;}
-.modal-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:0.5px solid #F1EFE8;}
+.modal-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid #F1EFE8;}
 .modal-row:last-of-type{border-bottom:none;}
 .modal-row-label{font-size:13px;color:var(--text-muted);font-weight:600;}
 .modal-row-val{font-size:13px;font-weight:700;color:var(--cacao);text-align:right;max-width:60%;}
 .modal-actions{display:flex;flex-direction:column;gap:8px;margin-top:18px;}
 .btn-status{width:100%;padding:13px;border-radius:var(--radius-sm);font-family:'Quicksand',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:opacity 0.15s;}
-.btn-status:active{opacity:0.8;}.btn-status:disabled{opacity:0.5;cursor:not-allowed;}
-.btn-confirmar{background:#d4edda;color:#155724;}.btn-entregar{background:var(--cacao);color:var(--banano);}.btn-delete{background:#f8d7da;color:#721c24;}
+.btn-status:active{opacity:0.8;}
+.btn-status:disabled{opacity:0.5;cursor:not-allowed;}
+.btn-next{background:var(--cacao);color:var(--banano);}
+.btn-edit{background:var(--crema);color:var(--cacao);border:0.5px solid var(--border-strong)!important;}
+.btn-cancel-stage{background:#fde8e8;color:#922b21;}
+.btn-danger{background:transparent;color:#999;border:0.5px solid #ddd;font-size:12px;padding:10px;}
 .btn-close-modal{background:transparent;color:var(--text-muted);border:0.5px solid var(--border-strong);border-radius:var(--radius-sm);padding:12px;font-family:'Quicksand',sans-serif;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:4px;}
+/* STAGE SELECTOR en modal */
+.stage-selector{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px;}
+.stage-opt{padding:9px 4px;border-radius:var(--radius-sm);border:0.5px solid var(--border-strong);background:var(--white);font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;color:var(--text-muted);cursor:pointer;text-align:center;text-transform:uppercase;letter-spacing:0.04em;transition:all 0.15s;}
+.stage-opt.active{border-width:1.5px;}
 /* TOAST */
 .toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--cacao);color:var(--crema);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:300;white-space:nowrap;opacity:0;transition:opacity 0.2s;pointer-events:none;}
 .toast.show{opacity:1;}
@@ -132,19 +170,6 @@ select.form-input{cursor:pointer;}
 .empty-state .e-icon{font-size:40px;margin-bottom:12px;}
 .empty-state .e-title{font-size:16px;font-weight:700;color:var(--cacao);margin-bottom:6px;}
 .empty-state .e-text{font-size:13px;line-height:1.6;}
-.sec-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;display:block;}
-/* PRODUCTS */
-.product-pill{background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
-.prod-name{font-size:15px;font-weight:700;color:var(--cacao);}
-.prod-desc{font-size:12px;color:var(--text-muted);margin-top:2px;}
-.prod-price{font-size:18px;font-weight:700;color:var(--dorado);flex-shrink:0;margin-left:10px;}
-.ciclo-card{background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:8px;}
-.ciclo-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-.ciclo-title{font-size:14px;font-weight:700;color:var(--cacao);}
-.ciclo-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--crema);color:var(--cacao);}
-.ciclo-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:0.5px solid #F1EFE8;}
-.ciclo-row:last-child{border-bottom:none;font-weight:700;}
-.ciclo-row .cr-label{color:var(--text-muted);font-weight:500;}
 /* STOCK */
 .ing-card{background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:13px 14px;margin-bottom:8px;cursor:pointer;transition:background 0.15s;}
 .ing-card:active{background:var(--crema);}
@@ -153,7 +178,8 @@ select.form-input{cursor:pointer;}
 .ing-card.status-ok{border-left:3px solid var(--hoja);}
 .ing-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
 .ing-name{font-size:14px;font-weight:700;color:var(--cacao);}
-.ing-stock-val{font-size:16px;font-weight:700;}
+.ing-meta{font-size:11px;color:var(--text-muted);margin-top:1px;}
+.ing-stock-val{font-size:16px;font-weight:700;text-align:right;}
 .ing-stock-val.critico{color:var(--rojo);}
 .ing-stock-val.alerta{color:var(--amarillo);}
 .ing-stock-val.ok{color:var(--hoja);}
@@ -169,32 +195,56 @@ select.form-input{cursor:pointer;}
 /* PAGOS */
 .pago-progress{background:#F1EFE8;border-radius:20px;height:8px;overflow:hidden;margin:10px 0 4px;}
 .pago-fill{height:100%;border-radius:20px;background:var(--hoja);transition:width 0.4s;}
-.payment-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid #F1EFE8;}
+.payment-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid #F1EFE8;}
 .payment-row:last-child{border-bottom:none;}
 .payment-method{font-size:12px;font-weight:700;color:var(--cacao);}
 .payment-amount{font-size:14px;font-weight:700;color:var(--hoja);}
 .payment-date{font-size:11px;color:var(--text-muted);}
-.method-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
-.method-pill{flex:1;min-width:80px;padding:10px 8px;border-radius:var(--radius-sm);border:0.5px solid var(--border-strong);background:var(--white);font-family:'Quicksand',sans-serif;font-size:13px;font-weight:700;color:var(--text-muted);cursor:pointer;text-align:center;transition:all 0.15s;}
+.method-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.method-pill{flex:1;min-width:80px;padding:9px 8px;border-radius:var(--radius-sm);border:0.5px solid var(--border-strong);background:var(--white);font-family:'Quicksand',sans-serif;font-size:13px;font-weight:700;color:var(--text-muted);cursor:pointer;text-align:center;}
 .method-pill.active{background:var(--cacao);color:var(--banano);border-color:var(--cacao);}
+/* FINANCE */
+.finance-header{background:linear-gradient(135deg,#2c1a08,var(--cacao));border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+.finance-main-val{font-size:32px;font-weight:700;color:var(--banano);line-height:1;}
+.finance-main-label{font-size:11px;color:rgba(250,238,218,0.7);font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-top:4px;}
+.finance-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid #F1EFE8;}
+.finance-row:last-child{border-bottom:none;}
+.finance-row-label{font-size:13px;color:var(--text-muted);font-weight:600;}
+.finance-row-val{font-size:14px;font-weight:700;}
+.finance-row-val.green{color:var(--hoja);}
+.finance-row-val.red{color:var(--rojo);}
+.order-finance-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;}
+.order-finance-row:active{background:var(--crema);}
+.ofr-name{font-size:13px;font-weight:700;color:var(--cacao);}
+.ofr-detail{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.ofr-right{text-align:right;}
+.ofr-ganancia{font-size:14px;font-weight:700;}
+.ofr-ganancia.pos{color:var(--hoja);}
+.ofr-ganancia.neg{color:var(--rojo);}
+.progress-bar-wrap{background:#F1EFE8;border-radius:20px;height:8px;overflow:hidden;margin:6px 0;}
+.progress-bar-fill{height:100%;border-radius:20px;transition:width 0.4s;}
+/* VIEW TABS */
+.view-tabs{display:flex;gap:6px;margin-bottom:14px;}
+.view-tab{flex:1;padding:8px 4px;border-radius:var(--radius-sm);border:0.5px solid var(--border-strong);background:var(--white);font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;color:var(--text-muted);cursor:pointer;text-align:center;text-transform:uppercase;letter-spacing:0.05em;}
+.view-tab.active{background:var(--cacao);color:var(--banano);border-color:var(--cacao);}
 </style>
 </head>
 <body>
 
 <div class="loading-overlay" id="loadingOverlay">
   <div class="loading-logo">Banan<span>í</span>simo</div>
-  <div class="loading-sub">Cargando datos...</div>
+  <div class="loading-sub">Cargando...</div>
   <div class="spinner"></div>
 </div>
 
 <div id="configScreen" style="display:none;">
   <div style="background:var(--cacao);padding:14px 18px 12px;">
-    <div style="font-size:20px;font-weight:700;color:var(--banano);">Banan<span style="color:var(--crema);">í</span>simo</div>
+    <div class="logo">Banan<span>í</span>simo</div>
   </div>
   <div class="config-card">
     <div class="config-title">Conectar con Supabase</div>
     <div class="config-sub">Ingresá las credenciales de tu proyecto. Solo se guardan en este dispositivo.</div>
-    <div class="config-note"><strong>¿Dónde las encontrás?</strong><br>Supabase → Settings → API Keys<br>Copiá la <em>Project URL</em> y la <em>Publishable key</em>.</div>
+    <div class="config-note"><strong>¿Dónde?</strong> Supabase → Settings → API Keys → Project URL + Publishable key</div>
     <label class="config-label">Project URL</label>
     <input class="config-input" id="cfgUrl" type="url" placeholder="https://xxxx.supabase.co">
     <label class="config-label">Publishable Key (anon)</label>
@@ -204,34 +254,41 @@ select.form-input{cursor:pointer;}
 </div>
 
 <div id="mainApp" style="display:none;">
-  <div class="error-banner" id="errorBanner"></div>
   <div class="topbar">
     <div class="topbar-row">
       <div class="logo">Banan<span>í</span>simo</div>
       <div class="cycle-pill" id="cyclePill">...</div>
     </div>
   </div>
-  <div class="screen active" id="screen-dashboard"></div>
-  <div class="screen" id="screen-orders"></div>
+  <div class="error-banner" id="errorBanner" style="margin:0 16px 0;"></div>
+
+  <div class="screen active" id="screen-orders"></div>
   <div class="screen" id="screen-new"></div>
   <div class="screen" id="screen-stock"></div>
+  <div class="screen" id="screen-finance"></div>
   <div class="screen" id="screen-config"></div>
+
   <nav class="bottom-nav">
-    <button class="nav-btn active" onclick="showScreen('dashboard',this)" id="nav-dashboard">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Inicio
-    </button>
-    <button class="nav-btn" onclick="showScreen('orders',this)" id="nav-orders">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>Pedidos
+    <button class="nav-btn active" onclick="showScreen('orders',this)" id="nav-orders">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+      Pedidos
     </button>
     <button class="nav-btn" onclick="showScreen('new',this)" id="nav-new">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Nuevo
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Nuevo
     </button>
     <button class="nav-btn" onclick="showScreen('stock',this)" id="nav-stock">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Stock
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      Stock
       <span class="nav-badge" id="stockAlertBadge" style="display:none">0</span>
     </button>
+    <button class="nav-btn" onclick="showScreen('finance',this)" id="nav-finance">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Balance
+    </button>
     <button class="nav-btn" onclick="showScreen('config',this)" id="nav-config">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Config
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Config
     </button>
   </nav>
 </div>
@@ -242,58 +299,56 @@ select.form-input{cursor:pointer;}
 <div class="toast" id="toast"></div>
 
 <script>
-const MAX_SEMANA=8,MAX_DIA=4;
+// ── CONSTANTES ────────────────────────────────────────────────
+const MAX_SEMANA=8, MAX_DIA=4;
 const CYCLES=[{id:'mar',label:'Martes',entrega:'Miércoles'},{id:'jue',label:'Jueves',entrega:'Viernes'}];
 const METODOS={sinpe:'SINPE',efectivo:'Efectivo',transferencia:'Transferencia'};
-let sb=null,products=[],allOrders=[],ingredients=[],allPayments=[];
-let currentFilter='all',newQty=1,currentOrderId=null,currentIngId=null;
-let currentScreen='dashboard',paymentMethod='sinpe',ingMoveType='compra';
-let dashboardView='week'; // 'week' | 'month' | 'custom'
-let dashboardWeekOffset=0;
-let dashboardMonthOffset=0;
-let customFrom='',customTo='';
+const STAGES=['recibido','horneado','enfriado','empacado','entregado'];
+const STAGE_LABEL={recibido:'Recibido',horneado:'Horneado',enfriado:'Enfriado',empacado:'Empacado',entregado:'Entregado',cancelado:'Cancelado'};
+const STAGE_ICON={recibido:'📋',horneado:'🔥',enfriado:'❄️',empacado:'📦',entregado:'✅',cancelado:'✗'};
+const STAGE_COLOR={
+  recibido:{bg:'#e8f4fd',color:'#1a5276'},horneado:{bg:'#fef9e7',color:'#7d6608'},
+  enfriado:{bg:'#eaf2ff',color:'#1a3a6b'},empacado:{bg:'#f0e6ff',color:'#6c3483'},
+  entregado:{bg:'#d5f5e3',color:'#1e8449'},cancelado:{bg:'#fde8e8',color:'#922b21'}
+};
 
-function getOffsetWeekKey(offset){const d=new Date();d.setDate(d.getDate()+offset*7);return getWeekKey(d);}
-function navWeek(delta){dashboardWeekOffset+=delta;if(dashboardWeekOffset>0)dashboardWeekOffset=0;renderDashboard();}
-function weekLabel(o){if(o===0)return'Esta semana';if(o===-1)return'Semana pasada';return'Hace '+Math.abs(o)+' semanas';}
-function getMonthRange(offset){
-  const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+offset);
-  const y=d.getFullYear(),m=d.getMonth();
-  const from=new Date(y,m,1).toISOString().slice(0,10);
-  const to=new Date(y,m+1,0).toISOString().slice(0,10);
-  const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  return{from,to,label:months[m]+' '+y};
-}
-function ordersInRange(from,to){
-  return allOrders.filter(o=>{
-    const d=o.order_date||o.created_at.slice(0,10);
-    return d>=from&&d<=to;
-  });
-}
+// ── ESTADO ────────────────────────────────────────────────────
+let sb=null, products=[], allOrders=[], ingredients=[], allPayments=[], productMaterials=[];
+let currentFilter='recibido', newQty=1, currentOrderId=null, currentIngId=null;
+let currentScreen='orders', paymentMethod='sinpe', ingMoveType='compra';
+let dashboardView='week', dashboardWeekOffset=0, dashboardMonthOffset=0, customFrom='', customTo='';
+let financeView='week', finWeekOffset=0, finMonthOffset=0, finCustomFrom='', finCustomTo='';
+let stockTab='ingrediente'; // 'ingrediente' | 'material'
 
+// ── CONFIG ────────────────────────────────────────────────────
 function loadConfig(){return{url:localStorage.getItem('sb_url')||'',key:localStorage.getItem('sb_key')||''};}
 function saveConfig(){
   const url=document.getElementById('cfgUrl').value.trim();
   const key=document.getElementById('cfgKey').value.trim();
   if(!url||!key){showToast('⚠️ Completá los dos campos');return;}
-  if(!url.includes('supabase')){showToast('⚠️ URL inválida');return;}
   localStorage.setItem('sb_url',url);localStorage.setItem('sb_key',key);initApp();
 }
+
 async function initApp(){
   const{url,key}=loadConfig();
   if(!url||!key){hideEl('loadingOverlay');showEl('configScreen');return;}
   try{
     sb=supabase.createClient(url,key);
-    const[r1,r2,r3,r4]=await Promise.all([
+    const[r1,r2,r3,r4,r5]=await Promise.all([
       sb.from('products').select('*').eq('active',true).order('price'),
-      sb.from('orders').select('*').order('created_at',{ascending:false}).limit(300),
+      sb.from('orders').select('*').order('created_at',{ascending:false}).limit(500),
       sb.from('ingredients').select('*').order('name'),
       sb.from('payments').select('*').order('created_at',{ascending:false}),
+      sb.from('product_materials').select('*'),
     ]);
-    if(r1.error)throw r1.error;if(r2.error)throw r2.error;
-    products=r1.data||[];allOrders=r2.data||[];ingredients=r3.data||[];allPayments=r4.data||[];
+    if(r1.error)throw r1.error;
+    if(r2.error)throw r2.error;
+    products=r1.data||[];allOrders=r2.data||[];
+    ingredients=r3.data||[];allPayments=r4.data||[];
+    productMaterials=r5.data||[];
     hideEl('loadingOverlay');showEl('mainApp');
-    updateCyclePill();updateStockBadge();renderDashboard();
+    updateCyclePill();updateStockBadge();renderOrders();
+    // Realtime
     sb.channel('rt')
       .on('postgres_changes',{event:'*',schema:'public',table:'orders'},p=>{
         if(p.eventType==='INSERT')allOrders.unshift(p.new);
@@ -316,32 +371,32 @@ async function initApp(){
       .subscribe();
   }catch(e){console.error(e);hideEl('loadingOverlay');showEl('configScreen');showToast('❌ Error de conexión');}
 }
+
+// ── HELPERS ───────────────────────────────────────────────────
 function showEl(id){const el=document.getElementById(id);if(el){el.style.display='block';el.classList.remove('hidden');}}
 function hideEl(id){const el=document.getElementById(id);if(el){el.classList.add('hidden');setTimeout(()=>{if(el.classList.contains('hidden'))el.style.display='none';},350);}}
 function getWeekKey(d=new Date()){const x=new Date(d);const day=x.getDay();x.setDate(x.getDate()-day+(day===0?-6:1));return x.toISOString().slice(0,10);}
-function formatPrice(n){return'₡'+Number(n).toLocaleString('es-CR');}
-function getInitials(n){return(n||'?').trim().split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();}
-function weekOrders(wk){return allOrders.filter(o=>{
-  // Soportar tanto week_key legacy como order_date nuevo
-  if(o.order_date) return getWeekKey(new Date(o.order_date+'T12:00:00'))===wk;
-  return o.week_key===wk;
-});}
-function activeOrders(orders){return orders.filter(o=>o.status!=='cancelado');}
+function getOffsetWeekKey(offset){const d=new Date();d.setDate(d.getDate()+offset*7);return getWeekKey(d);}
+function getMonthRange(offset){
+  const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+offset);
+  const y=d.getFullYear(),m=d.getMonth();
+  const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  return{from:new Date(y,m,1).toISOString().slice(0,10),to:new Date(y,m+1,0).toISOString().slice(0,10),label:months[m]+' '+y};
+}
+function ordersInRange(from,to){return allOrders.filter(o=>{const d=o.order_date||o.created_at.slice(0,10);return d>=from&&d<=to;});}
+function weekOrders(wk){return allOrders.filter(o=>{if(o.order_date)return getWeekKey(new Date(o.order_date+'T12:00:00'))===wk;return o.week_key===wk;});}
+function activeOrders(orders){return orders.filter(o=>o.stage!=='cancelado');}
 function orderPayments(id){return allPayments.filter(p=>p.order_id===id);}
 function orderPaidAmount(id){return orderPayments(id).reduce((s,p)=>s+p.amount,0);}
 function ingStatus(i){if(i.stock<=i.min_stock)return'critico';if(i.stock<=i.warn_stock)return'alerta';return'ok';}
+function formatPrice(n){return'₡'+Number(n||0).toLocaleString('es-CR');}
+function getInitials(n){return(n||'?').trim().split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();}
+function navWeek(delta){dashboardWeekOffset+=delta;if(dashboardWeekOffset>0)dashboardWeekOffset=0;renderScreen(currentScreen);}
+function navMonth(delta){dashboardMonthOffset+=delta;if(dashboardMonthOffset>0)dashboardMonthOffset=0;renderScreen(currentScreen);}
 function showToast(msg,d=2400){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),d);}
-function showError(msg){const b=document.getElementById('errorBanner');b.textContent=msg;b.classList.add('show');setTimeout(()=>b.classList.remove('show'),5000);}
-function updateCyclePill(){
-  const day=new Date().getDay();
-  const map={1:'Pedidos abiertos',2:'Hornear hoy · Mar',3:'Entregas + pedidos',4:'Hornear hoy · Jue',5:'Entregas hoy'};
-  document.getElementById('cyclePill').textContent=map[day]||'Fin de semana libre';
-}
-function updateStockBadge(){
-  const total=ingredients.filter(i=>ingStatus(i)!=='ok').length;
-  const b=document.getElementById('stockAlertBadge');if(!b)return;
-  if(total>0){b.textContent=total;b.style.display='flex';}else b.style.display='none';
-}
+function showError(msg){const b=document.getElementById('errorBanner');if(!b)return;b.textContent=msg;b.classList.add('show');setTimeout(()=>b.classList.remove('show'),5000);}
+function updateCyclePill(){const day=new Date().getDay();const map={1:'Pedidos abiertos',2:'Hornear · Mar',3:'Entregas + pedidos',4:'Hornear · Jue',5:'Entregas hoy'};document.getElementById('cyclePill').textContent=map[day]||'Fin de semana';}
+function updateStockBadge(){const total=ingredients.filter(i=>ingStatus(i)!=='ok').length;const b=document.getElementById('stockAlertBadge');if(!b)return;if(total>0){b.textContent=total;b.style.display='flex';}else b.style.display='none';}
 function showScreen(name,btn){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
@@ -349,160 +404,145 @@ function showScreen(name,btn){
   (btn||document.getElementById('nav-'+name)).classList.add('active');
   currentScreen=name;renderScreen(name);
 }
-function renderScreen(name){const map={dashboard:renderDashboard,orders:renderOrders,new:renderNew,stock:renderStock,config:renderConfig};if(map[name])map[name]();}
-function rerenderCurrent(){
-  // Pequeño delay para asegurar que el modal cerró antes de re-renderizar
-  setTimeout(()=>renderScreen(currentScreen),50);
+function renderScreen(name){const map={orders:renderOrders,new:renderNew,stock:renderStock,finance:renderFinance,config:renderConfig};if(map[name])map[name]();}
+function rerenderCurrent(){setTimeout(()=>renderScreen(currentScreen),50);}
+
+// ── HELPERS FINANZAS ──────────────────────────────────────────
+function orderCostEstimate(o){
+  // Costo fijo de producción por pan (de las instrucciones del proyecto)
+  const costoPorPan=1845;
+  return costoPorPan*o.qty;
+}
+function orderGanancia(o){
+  return (o.qty*o.price)-orderCostEstimate(o);
+}
+function getFinanceOrders(){
+  if(financeView==='week'){return weekOrders(getOffsetWeekKey(finWeekOffset));}
+  if(financeView==='month'){const{from,to}=getMonthRange(finMonthOffset);return ordersInRange(from,to);}
+  if(finCustomFrom&&finCustomTo)return ordersInRange(finCustomFrom,finCustomTo);
+  return[];
+}
+function getFinanceLabel(){
+  if(financeView==='week'){const o=finWeekOffset;return o===0?'Esta semana':o===-1?'Semana pasada':'Hace '+Math.abs(o)+' semanas';}
+  if(financeView==='month'){return getMonthRange(finMonthOffset).label;}
+  return finCustomFrom&&finCustomTo?finCustomFrom+' → '+finCustomTo:'Seleccioná rango';
 }
 
-function renderDashboard(){
-  const el=document.getElementById('screen-dashboard');
-  const isNow=dashboardWeekOffset===0&&dashboardView==='week';
-
-  // ── compute orders for current view ──
-  let viewOrders,viewLabel,canNext=false;
-  if(dashboardView==='week'){
-    const wk=getOffsetWeekKey(dashboardWeekOffset);
-    viewOrders=weekOrders(wk);
-    viewLabel=weekLabel(dashboardWeekOffset);
-    canNext=dashboardWeekOffset<0;
-  } else if(dashboardView==='month'){
-    const{from,to,label}=getMonthRange(dashboardMonthOffset);
-    viewOrders=ordersInRange(from,to);
-    viewLabel=label;
-    canNext=dashboardMonthOffset<0;
-  } else {
-    // custom
-    viewOrders=(customFrom&&customTo)?ordersInRange(customFrom,customTo):[];
-    viewLabel=customFrom&&customTo?customFrom+' → '+customTo:'Seleccioná rango';
-    canNext=false;
-  }
-
-  const active=activeOrders(viewOrders);
-  const totalPanes=active.reduce((s,o)=>s+o.qty,0);
-  const pct=Math.min(100,Math.round((totalPanes/MAX_SEMANA)*100));
-  const slots=Array.from({length:MAX_SEMANA},(_,i)=>i<totalPanes);
-  const ingresos=viewOrders.filter(o=>o.status==='entregado').reduce((s,o)=>s+o.qty*o.price,0);
-  const porCobrar=viewOrders.filter(o=>['pendiente','confirmado'].includes(o.status)).reduce((s,o)=>s+o.qty*o.price,0);
-  const alertas=ingredients.filter(i=>ingStatus(i)!=='ok');
-
-  const navBtnStyle='background:rgba(255,255,255,0.14);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer;';
-  const navBtnOff='opacity:0.25;background:transparent;border:0.5px solid rgba(255,255,255,0.1);color:var(--crema);border-radius:8px;width:34px;height:34px;font-size:18px;cursor:default;';
-
-  const customFields=dashboardView==='custom'?`
-    <div style="display:flex;gap:8px;margin-top:10px;">
-      <input type="date" id="dash_from" value="${customFrom}" onchange="customFrom=this.value;renderDashboard()"
-        style="flex:1;background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;padding:6px 10px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:600;outline:none;">
-      <span style="color:var(--banano);line-height:32px;">→</span>
-      <input type="date" id="dash_to" value="${customTo}" onchange="customTo=this.value;renderDashboard()"
-        style="flex:1;background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;padding:6px 10px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:600;outline:none;">
-    </div>`:'';
-
-  el.innerHTML=`
-    <div class="week-header">
-      <div style="display:flex;gap:6px;margin-bottom:10px;">
-        ${['week','month','custom'].map(v=>`
-          <button onclick="dashboardView='${v}';dashboardWeekOffset=0;dashboardMonthOffset=0;renderDashboard()"
-            style="flex:1;padding:5px 4px;border-radius:8px;border:0.5px solid rgba(255,255,255,${dashboardView===v?'0.5':'0.2'});background:${dashboardView===v?'rgba(239,159,39,0.25)':'transparent'};color:${dashboardView===v?'var(--banano)':'rgba(250,238,218,0.6)'};font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;">
-            ${v==='week'?'Semana':v==='month'?'Mes':'Rango'}
-          </button>`).join('')}
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <p class="wh-title" style="font-size:15px;">${viewLabel}</p>
-        ${dashboardView!=='custom'?`<div style="display:flex;gap:6px;">
-          <button onclick="${dashboardView==='week'?'navWeek(-1)':'navMonth(-1)'}" style="${navBtnStyle}">←</button>
-          <button onclick="${dashboardView==='week'?'navWeek(1)':'navMonth(1)'}" ${!canNext?'disabled':''} style="${canNext?navBtnStyle:navBtnOff}">→</button>
-        </div>`:''}
-      </div>
-      ${customFields}
-    </div>
-    ${isNow&&alertas.length>0?`<div class="alert-banner" onclick="showScreen('stock',document.getElementById('nav-stock'))">
-      <div class="alert-banner-title">⚠️ ${alertas.length} ingrediente${alertas.length>1?'s':''} requiere${alertas.length>1?'n':''} atención</div>
-      <div class="alert-banner-text">${alertas.slice(0,3).map(i=>`${i.name} (${ingStatus(i)==='critico'?'crítico':'alerta'})`).join(' · ')}${alertas.length>3?` · +${alertas.length-3} más`:''}</div>
-    </div>`:''}
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-val">${totalPanes}<span style="font-size:14px;color:var(--text-muted);">/${dashboardView==='week'?MAX_SEMANA:'∞'}</span></div><div class="stat-label">Panes</div><div class="stat-sub">${active.length} pedidos</div></div>
-      <div class="stat-card"><div class="stat-val">${viewOrders.filter(o=>o.status==='entregado').length}</div><div class="stat-label">Entregados</div><div class="stat-sub">${viewOrders.filter(o=>o.status==='cancelado').length} cancelados</div></div>
-      <div class="stat-card"><div class="stat-val" style="font-size:18px;">${formatPrice(ingresos)}</div><div class="stat-label">Cobrado</div><div class="stat-sub">Entregados</div></div>
-      <div class="stat-card"><div class="stat-val" style="font-size:18px;">${formatPrice(porCobrar)}</div><div class="stat-label">Por cobrar</div><div class="stat-sub">Activos</div></div>
-    </div>
-    ${dashboardView==='week'?`<div class="capacity-bar-wrap">
-      <div class="cap-row"><p class="cap-label">Capacidad semanal</p><p class="cap-count">${totalPanes}<span>/${MAX_SEMANA} panes</span></p></div>
-      <div class="bar-track"><div class="bar-fill ${totalPanes>=MAX_SEMANA?'warn':''}" style="width:${pct}%"></div></div>
-      <div class="bar-slots">${slots.map(u=>`<div class="slot ${u?(totalPanes>=MAX_SEMANA?'used warn':'used'):''}"></div>`).join('')}</div>
-    </div>`:''}
-    <span class="sec-label">${isNow?'Pedidos activos':'Pedidos del período'}</span>
-    ${(isNow?active.filter(o=>['pendiente','confirmado'].includes(o.status)):active).length===0
-      ?`<div class="empty-state"><div class="e-icon">📋</div><div class="e-title">Sin pedidos</div><div class="e-text">${isNow?'Usá el botón + para agregar.':'No hay pedidos para este período.'}</div></div>`
-      :(isNow?active.filter(o=>['pendiente','confirmado'].includes(o.status)):active).map(o=>orderCardHTML(o)).join('')}
-  `;
-  attachOrderCards(el);
-}
-function navMonth(delta){dashboardMonthOffset+=delta;if(dashboardMonthOffset>0)dashboardMonthOffset=0;renderDashboard();}
-
-
+// ── ORDERS SCREEN ─────────────────────────────────────────────
 function renderOrders(){
-  const ORDER={'pendiente':0,'confirmado':1,'entregado':2,'cancelado':3};
-  const base=currentFilter==='all'?allOrders:allOrders.filter(o=>o.status===currentFilter);
-  const filtered=[...base].sort((a,b)=>(ORDER[a.status]??9)-(ORDER[b.status]??9));
+  const STAGE_ORDER={recibido:0,horneado:1,enfriado:2,empacado:3,entregado:4,cancelado:5};
+  const base=currentFilter==='all'?allOrders:allOrders.filter(o=>(o.stage||'recibido')===currentFilter);
+  const sorted=[...base].sort((a,b)=>(STAGE_ORDER[a.stage||'recibido']??9)-(STAGE_ORDER[b.stage||'recibido']??9));
   const el=document.getElementById('screen-orders');
+  const filters=['recibido','horneado','enfriado','empacado','entregado','cancelado','all'];
   el.innerHTML=`
-    <div class="filter-row">${['pendiente','confirmado','entregado','cancelado','all'].map(f=>`<button class="filter-chip ${currentFilter===f?'active':''}" onclick="setFilter('${f}')">${f==='all'?'Todos':f.charAt(0).toUpperCase()+f.slice(1)}</button>`).join('')}</div>
-    ${filtered.length===0?`<div class="empty-state"><div class="e-icon">📋</div><div class="e-title">Sin pedidos</div></div>`:filtered.map(o=>orderCardHTML(o)).join('')}
+    <div class="filter-row">
+      ${filters.map(f=>`<button class="filter-chip ${currentFilter===f?'active':''}" onclick="setFilter('${f}')">${f==='all'?'Todos':STAGE_LABEL[f]}</button>`).join('')}
+    </div>
+    ${sorted.length===0
+      ?`<div class="empty-state"><div class="e-icon">📋</div><div class="e-title">Sin pedidos</div><div class="e-text">Usá el botón + para agregar.</div></div>`
+      :sorted.map(o=>orderCardHTML(o)).join('')}
   `;
-  attachOrderCards(el);
+  el.querySelectorAll('.order-card').forEach(card=>card.addEventListener('click',()=>openOrderModal(card.dataset.id)));
 }
 function setFilter(f){currentFilter=f;renderOrders();}
-function paymentTagHTML(orderId,total){
-  const paid=orderPaidAmount(orderId);
-  if(paid>=total)return`<span class="tag tag-pagado">pagado</span>`;
-  if(paid>0)return`<span class="tag tag-parcial">parcial</span>`;
-  return`<span class="tag tag-sinpago">sin pago</span>`;
-}
+
 function orderCardHTML(o){
   const prod=products.find(p=>p.id===o.product_id);
   const cycle=CYCLES.find(c=>c.id===o.cycle_id);
   const total=o.qty*o.price;
+  const paid=orderPaidAmount(o.id);
+  const stage=o.stage||'recibido';
+  const sc=STAGE_COLOR[stage]||STAGE_COLOR.recibido;
+  const isCancelled=stage==='cancelado';
+  // mini pipeline
+  const miniDots=STAGES.map((s,i)=>{
+    const stageIdx=STAGES.indexOf(stage);
+    const cls=isCancelled?'':i<stageIdx?'done':i===stageIdx?'current':'';
+    const lineClass=isCancelled?'':i<stageIdx?'done':'';
+    return(i>0?`<div class="mini-line ${lineClass}"></div>`:'')
+      +`<div class="mini-dot ${isCancelled&&i===0?'cancelled':cls}"></div>`;
+  }).join('');
+
+  let payTag='';
+  if(paid>=total)payTag=`<span class="tag tag-pagado">pagado</span>`;
+  else if(paid>0)payTag=`<span class="tag tag-parcial">parcial</span>`;
+  else payTag=`<span class="tag tag-sinpago">sin pago</span>`;
+
   return`<div class="order-card" data-id="${o.id}">
-    <div class="order-avatar">${getInitials(o.client_name)}</div>
-    <div class="order-body">
-      <div class="order-name">${o.client_name}</div>
-      <div class="order-detail">${prod?prod.name:o.product_id} × ${o.qty}<span class="order-cycle-badge">${cycle?cycle.label:o.cycle_id}</span></div>
-      <div class="order-tags"><span class="tag tag-${o.status}">${o.status}</span>${paymentTagHTML(o.id,total)}${o.notes?'<span class="tag tag-prod">nota</span>':''}</div>
+    <div class="order-card-top">
+      <div class="order-avatar">${getInitials(o.client_name)}</div>
+      <div class="order-body">
+        <div class="order-name">${o.client_name}</div>
+        <div class="order-detail">${prod?prod.name:''} × ${o.qty}<span class="order-cycle-badge">${cycle?cycle.label:o.cycle_id}</span></div>
+        <div class="order-tags">
+          <span class="tag" style="background:${sc.bg};color:${sc.color};">${STAGE_ICON[stage]} ${STAGE_LABEL[stage]}</span>
+          ${payTag}${o.notes?'<span class="tag tag-prod">nota</span>':''}
+        </div>
+      </div>
+      <div class="order-price">${formatPrice(total)}</div>
     </div>
-    <div class="order-price">${formatPrice(total)}</div>
+    ${!isCancelled?`<div class="mini-stage">${miniDots}</div>`:''}
   </div>`;
 }
-function attachOrderCards(container){container.querySelectorAll('.order-card').forEach(card=>card.addEventListener('click',()=>openOrderModal(card.dataset.id)));}
 
+// ── NEW ORDER ─────────────────────────────────────────────────
 function renderNew(){
   const today=new Date().toISOString().slice(0,10);
   const selDate=document.getElementById('fn_date')?document.getElementById('fn_date').value:today;
   const dateVal=selDate||today;
   const wk=getWeekKey(new Date(dateVal+'T12:00:00'));
-  const totalPanes=activeOrders(weekOrders(wk)).reduce((s,o)=>s+o.qty,0),available=MAX_SEMANA-totalPanes;
+  const totalPanes=activeOrders(weekOrders(wk)).reduce((s,o)=>s+o.qty,0);
+  const available=MAX_SEMANA-totalPanes;
   const el=document.getElementById('screen-new');
-  if(available<=0){el.innerHTML=`<div class="form-card" style="text-align:center;padding:30px 18px;"><div style="font-size:40px;margin-bottom:12px;">🍌</div><div class="form-title" style="text-align:center;">Semana llena</div><p style="font-size:13px;color:var(--text-muted);margin-top:8px;line-height:1.6;">Alcanzaste el máximo de ${MAX_SEMANA} panes esta semana.</p></div>`;return;}
-  newQty=Math.min(newQty,available);
+  newQty=Math.min(newQty,Math.max(1,available));
   el.innerHTML=`<div class="form-card">
     <p class="form-title">Nuevo pedido</p>
-    <div style="background:var(--crema);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:16px;font-size:12px;font-weight:700;color:var(--cacao);">🍞 Semana del ${wk} · <span style="color:${available<=0?'var(--rojo)':'var(--dorado)'};">${available<=0?'Sin disponibilidad':available+' de '+MAX_SEMANA+' disponibles'}</span></div>
-    <div class="form-group"><label class="form-label">Fecha del pedido</label><input class="form-input" id="fn_date" type="date" value="${dateVal}" max="${new Date().toISOString().slice(0,10)}" onchange="renderNew()"></div>
-    <div class="form-group"><label class="form-label">Nombre del cliente</label><input class="form-input" id="fn_name" type="text" placeholder="Ej: María Rodríguez" autocomplete="off"></div>
-    <div class="form-group"><label class="form-label">WhatsApp (opcional)</label><input class="form-input" id="fn_phone" type="tel" placeholder="8888-8888"></div>
-    <div class="form-group"><label class="form-label">Producto</label><select class="form-input" id="fn_product" onchange="updateTotal()">${products.map(p=>`<option value="${p.id}" data-price="${p.price}">${p.name} — ${formatPrice(p.price)}</option>`).join('')}</select></div>
-    <div class="form-group"><label class="form-label">Cantidad</label>
-      <div class="qty-row"><button class="qty-btn" onclick="changeQty(-1)">−</button><div class="qty-display" id="fn_qty">${newQty}</div><button class="qty-btn" onclick="changeQty(1)">+</button><span style="font-size:12px;color:var(--text-muted);font-weight:600;">loaf${newQty>1?'s':''}</span></div>
+    <div style="background:var(--crema);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:16px;font-size:12px;font-weight:700;color:var(--cacao);">
+      🍞 Semana ${wk} · <span style="color:${available<=0?'var(--rojo)':'var(--dorado)'};">${available<=0?'Sin disponibilidad':available+' de '+MAX_SEMANA+' disponibles'}</span>
     </div>
-    <div class="form-group"><label class="form-label">Ciclo de entrega</label><select class="form-input" id="fn_cycle">${CYCLES.map(c=>`<option value="${c.id}">Entrega ${c.entrega} (hornea ${c.label})</option>`).join('')}</select></div>
-    <div class="form-group"><label class="form-label">Notas (opcional)</label><input class="form-input" id="fn_notes" type="text" placeholder="Ej: sin maní, entregar en trabajo..."></div>
+    <div class="form-group"><label class="form-label">Fecha del pedido</label>
+      <input class="form-input" id="fn_date" type="date" value="${dateVal}" max="${today}" onchange="renderNew()">
+    </div>
+    <div class="form-group"><label class="form-label">Nombre del cliente</label>
+      <input class="form-input" id="fn_name" type="text" placeholder="Ej: María Rodríguez" autocomplete="off">
+    </div>
+    <div class="form-group"><label class="form-label">WhatsApp (opcional)</label>
+      <input class="form-input" id="fn_phone" type="tel" placeholder="8888-8888">
+    </div>
+    <div class="form-group"><label class="form-label">Producto</label>
+      <select class="form-input" id="fn_product" onchange="updateTotal()">${products.map(p=>`<option value="${p.id}" data-price="${p.price}">${p.name} — ${formatPrice(p.price)}</option>`).join('')}</select>
+    </div>
+    <div class="form-group"><label class="form-label">Cantidad</label>
+      <div class="qty-row">
+        <button class="qty-btn" onclick="changeQty(-1)">−</button>
+        <div class="qty-display" id="fn_qty">${newQty}</div>
+        <button class="qty-btn" onclick="changeQty(1)">+</button>
+        <span style="font-size:12px;color:var(--text-muted);font-weight:600;">loaf${newQty>1?'s':''}</span>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Ciclo de entrega</label>
+      <select class="form-input" id="fn_cycle">${CYCLES.map(c=>`<option value="${c.id}">Entrega ${c.entrega} (hornea ${c.label})</option>`).join('')}</select>
+    </div>
+    <div class="form-group"><label class="form-label">Notas (opcional)</label>
+      <input class="form-input" id="fn_notes" type="text" placeholder="Ej: sin maní, dirección especial...">
+    </div>
     <div id="fn_total" style="font-size:15px;font-weight:700;color:var(--cacao);text-align:right;margin-bottom:16px;"></div>
     <button class="btn-primary" id="btnSaveOrder" onclick="saveOrder()">Guardar pedido</button>
   </div>`;
   updateTotal();
 }
-function changeQty(delta){const avail=MAX_SEMANA-activeOrders(weekOrders(getWeekKey())).reduce((s,o)=>s+o.qty,0);newQty=Math.max(1,Math.min(avail,newQty+delta));document.getElementById('fn_qty').textContent=newQty;updateTotal();}
-function updateTotal(){const sel=document.getElementById('fn_product');if(!sel)return;const price=parseInt(sel.selectedOptions[0]?.dataset.price||0);const t=document.getElementById('fn_total');if(t)t.textContent=price?`Total: ${formatPrice(price*newQty)}`:'';} 
+function changeQty(delta){
+  const avail=MAX_SEMANA-activeOrders(weekOrders(getWeekKey())).reduce((s,o)=>s+o.qty,0);
+  newQty=Math.max(1,Math.min(avail,newQty+delta));
+  document.getElementById('fn_qty').textContent=newQty;updateTotal();
+}
+function updateTotal(){
+  const sel=document.getElementById('fn_product');if(!sel)return;
+  const price=parseInt(sel.selectedOptions[0]?.dataset.price||0);
+  const t=document.getElementById('fn_total');
+  if(t)t.textContent=price?`Total: ${formatPrice(price*newQty)}`:'';
+}
 async function saveOrder(){
   const name=document.getElementById('fn_name').value.trim();
   const phone=document.getElementById('fn_phone').value.trim();
@@ -517,32 +557,58 @@ async function saveOrder(){
     const dateEl=document.getElementById('fn_date');
     const orderDate=dateEl?dateEl.value:new Date().toISOString().slice(0,10);
     const weekKey=getWeekKey(new Date(orderDate+'T12:00:00'));
-    const{error}=await sb.from('orders').insert({client_name:name,client_phone:phone||null,product_id:productId,qty:newQty,price:prod.price,cycle_id:cycleId,notes:notes||null,status:'pendiente',week_key:weekKey,order_date:orderDate});
+    const{data:newOrder,error}=await sb.from('orders').insert({
+      client_name:name,client_phone:phone||null,product_id:productId,
+      qty:newQty,price:prod.price,cycle_id:cycleId,notes:notes||null,
+      stage:'recibido',week_key:weekKey,order_date:orderDate
+    }).select().single();
     if(error)throw error;
-    const{data:newOrder}=await sb.from('orders').select('*').eq('client_name',name).order('created_at',{ascending:false}).limit(1).single();
     if(newOrder)allOrders.unshift(newOrder);
-    showToast('✓ Pedido guardado');newQty=1;showScreen('dashboard',document.getElementById('nav-dashboard'));
+    showToast('✓ Pedido guardado');newQty=1;
+    showScreen('orders',document.getElementById('nav-orders'));
   }catch(e){showError('Error: '+e.message);btn.disabled=false;btn.innerHTML='Guardar pedido';}
 }
 
+// ── ORDER MODAL ───────────────────────────────────────────────
 function openOrderModal(orderId){
   currentOrderId=orderId;
   const o=allOrders.find(x=>x.id===orderId);if(!o)return;
   const prod=products.find(p=>p.id===o.product_id);
   const cycle=CYCLES.find(c=>c.id===o.cycle_id);
+  const stage=o.stage||'recibido';
   const total=o.qty*o.price,paid=orderPaidAmount(orderId),pendPago=total-paid;
   const dateStr=new Date((o.order_date||o.created_at.slice(0,10))+'T12:00:00').toLocaleDateString('es-CR',{day:'numeric',month:'short',year:'numeric'});
   const pagos=orderPayments(orderId);
+  const stageIdx=STAGES.indexOf(stage);
+  const nextStage=stageIdx>=0&&stageIdx<STAGES.length-1?STAGES[stageIdx+1]:null;
+  const isCancelled=stage==='cancelado';
+
+  // Stage pipeline visual
+  const pipelineHTML=STAGES.map((s,i)=>{
+    const done=!isCancelled&&i<stageIdx;
+    const current=!isCancelled&&i===stageIdx;
+    const dotClass=isCancelled?'':done?'done':current?'current':'';
+    const nameClass=dotClass;
+    const lineClass=done?'done':'';
+    return(i>0?`<div class="stage-line ${lineClass}"></div>`:'')
+      +`<div class="stage-step">
+        <div class="stage-dot ${dotClass}">${done?'✓':current?STAGE_ICON[s]:i+1}</div>
+        <div class="stage-name ${nameClass}">${STAGE_LABEL[s]}</div>
+      </div>`;
+  }).join('');
+
   document.getElementById('modalContent').innerHTML=`
     <p class="modal-title">${o.client_name}</p>
-    <p class="modal-sub">${o.client_phone?'📱 '+o.client_phone:'Sin número registrado'}</p>
-    <div class="modal-row"><span class="modal-row-label">Producto</span><span class="modal-row-val">${prod?.name||o.product_id}</span></div>
+    <p class="modal-sub">${o.client_phone?'📱 '+o.client_phone:'Sin número'} · ${dateStr}</p>
+
+    <div style="display:flex;align-items:center;margin-bottom:16px;">${pipelineHTML}${isCancelled?`<div class="stage-step"><div class="stage-dot cancelled">✗</div><div class="stage-name cancelled">Cancelado</div></div>`:''}</div>
+
+    <div class="modal-row"><span class="modal-row-label">Producto</span><span class="modal-row-val">${prod?.name||''}</span></div>
     <div class="modal-row"><span class="modal-row-label">Cantidad</span><span class="modal-row-val">${o.qty} loaf${o.qty>1?'s':''}</span></div>
     <div class="modal-row"><span class="modal-row-label">Total</span><span class="modal-row-val">${formatPrice(total)}</span></div>
     <div class="modal-row"><span class="modal-row-label">Entrega</span><span class="modal-row-val">${cycle?cycle.entrega:o.cycle_id}</span></div>
-    <div class="modal-row"><span class="modal-row-label">Estado</span><span class="tag tag-${o.status}">${o.status}</span></div>
-    <div class="modal-row"><span class="modal-row-label">Pedido el</span><span class="modal-row-val">${dateStr}</span></div>
     ${o.notes?`<div class="modal-row"><span class="modal-row-label">Notas</span><span class="modal-row-val">${o.notes}</span></div>`:''}
+
     <div style="margin-top:16px;padding-top:14px;border-top:0.5px solid #F1EFE8;">
       <p style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">💰 Pagos</p>
       <div class="pago-progress"><div class="pago-fill" style="width:${Math.min(100,Math.round(paid/total*100))}%"></div></div>
@@ -550,7 +616,13 @@ function openOrderModal(orderId){
         <span>Cobrado: <strong style="color:var(--hoja);">${formatPrice(paid)}</strong></span>
         <span>Pendiente: <strong style="color:${pendPago>0?'var(--rojo)':'var(--hoja)'};">${formatPrice(pendPago)}</strong></span>
       </div>
-      ${pagos.length>0?`<div style="background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;">${pagos.map(p=>`<div class="payment-row"><div><div class="payment-method">${METODOS[p.method]||p.method}</div><div class="payment-date">${new Date((p.payment_date||p.created_at).slice(0,10)+'T12:00:00').toLocaleDateString('es-CR',{day:'numeric',month:'short'})}</div></div><div class="payment-amount">+${formatPrice(p.amount)}</div></div>`).join('')}</div>`:''}
+      ${pagos.length>0?`<div style="background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;">
+        ${pagos.map(p=>`<div class="payment-row">
+          <div><div class="payment-method">${METODOS[p.method]||p.method}</div>
+          <div class="payment-date">${new Date((p.payment_date||p.created_at.slice(0,10))+'T12:00:00').toLocaleDateString('es-CR',{day:'numeric',month:'short'})}</div></div>
+          <div class="payment-amount">+${formatPrice(p.amount)}</div>
+        </div>`).join('')}
+      </div>`:''}
       ${pendPago>0?`<div style="background:var(--bg);border-radius:var(--radius-sm);padding:12px;margin-bottom:4px;">
         <p style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Registrar pago</p>
         <div class="method-pills">
@@ -559,21 +631,39 @@ function openOrderModal(orderId){
           <button class="method-pill ${paymentMethod==='transferencia'?'active':''}" onclick="setPayMethod('transferencia',this)">Transfer</button>
         </div>
         <input class="form-input" id="payAmount" type="number" placeholder="Monto en colones" value="${pendPago}" style="margin-bottom:8px;">
-        <button class="btn-status btn-confirmar" onclick="registrarPago()">✓ Registrar pago</button>
+        <button class="btn-status btn-next" onclick="registrarPago()">✓ Registrar pago</button>
       </div>`:''}
     </div>
+
     <div class="modal-actions">
-      ${o.status==='pendiente'?`<button class="btn-status btn-confirmar" id="btnConfirmar" onclick="updateOrderStatus('confirmado')">✓ Confirmar pedido</button>`:''}
-      ${o.status==='confirmado'?`<button class="btn-status btn-entregar" id="btnEntregar" onclick="updateOrderStatus('entregado')">📦 Marcar como entregado</button>`:''}
-      ${o.client_phone?`<button class="btn-status" style="background:#d4edda;color:#155724;" onclick="openWhatsApp()">💬 Mensaje de WhatsApp</button>`:''}
-      <button class="btn-status" style="background:var(--crema);color:var(--cacao);border:0.5px solid var(--border-strong);" onclick="openEditPanel()">✏️ Editar pedido</button>
-      ${o.status!=='entregado'&&o.status!=='cancelado'?`<button class="btn-status btn-delete" onclick="cancelarPedido()">Cancelar pedido</button>`:''}
-      <button class="btn-status" style="background:transparent;color:#999;border:0.5px solid #ddd;font-size:12px;padding:10px;" onclick="eliminarPedido()">🗑 Eliminar pedido permanentemente</button>
+      ${!isCancelled&&nextStage?`<button class="btn-status btn-next" onclick="avanzarStage()">→ Marcar como ${STAGE_LABEL[nextStage]}</button>`:''}
+      ${o.client_phone?`<button class="btn-status" style="background:#d4edda;color:#155724;" onclick="openWhatsApp()">💬 WhatsApp</button>`:''}
+      <button class="btn-status btn-edit" onclick="openEditPanel()">✏️ Editar pedido</button>
+      ${!isCancelled?`<button class="btn-status btn-cancel-stage" onclick="cancelarPedido()">✗ Cancelar pedido</button>`:''}
+      <button class="btn-status btn-danger" onclick="eliminarPedido()">🗑 Eliminar permanentemente</button>
       <button class="btn-close-modal" onclick="closeModal()">Cerrar</button>
     </div>`;
   document.getElementById('modalOverlay').classList.add('open');
 }
+
+async function avanzarStage(){
+  const o=allOrders.find(x=>x.id===currentOrderId);if(!o)return;
+  const stage=o.stage||'recibido';
+  const idx=STAGES.indexOf(stage);
+  if(idx<0||idx>=STAGES.length-1)return;
+  const next=STAGES[idx+1];
+  const btn=event.target;btn.disabled=true;btn.textContent='Actualizando...';
+  try{
+    const{error}=await sb.from('orders').update({stage:next}).eq('id',currentOrderId);
+    if(error)throw error;
+    const oi=allOrders.findIndex(x=>x.id===currentOrderId);
+    if(oi>=0)allOrders[oi]={...allOrders[oi],stage:next};
+    closeModal();showToast(`✓ ${STAGE_LABEL[next]}`);rerenderCurrent();
+  }catch(e){showError('Error: '+e.message);btn.disabled=false;btn.textContent='→ Marcar como '+STAGE_LABEL[next];}
+}
+
 function setPayMethod(m,btn){paymentMethod=m;document.querySelectorAll('.method-pill').forEach(p=>p.classList.remove('active'));btn.classList.add('active');}
+
 async function registrarPago(){
   const amount=parseInt(document.getElementById('payAmount').value);
   if(!amount||amount<=0){showToast('⚠️ Ingresá un monto válido');return;}
@@ -581,158 +671,167 @@ async function registrarPago(){
   try{
     const{error}=await sb.from('payments').insert({order_id:currentOrderId,amount,method:paymentMethod});
     if(error)throw error;
-    allPayments.unshift({id:crypto.randomUUID(),order_id:currentOrderId,amount,method:paymentMethod,payment_date:new Date().toISOString().slice(0,10),created_at:new Date().toISOString()});closeModal();showToast('✓ Pago registrado');rerenderCurrent();
+    allPayments.unshift({id:crypto.randomUUID(),order_id:currentOrderId,amount,method:paymentMethod,payment_date:new Date().toISOString().slice(0,10),created_at:new Date().toISOString()});
+    closeModal();showToast('✓ Pago registrado');rerenderCurrent();
   }catch(e){showError('Error: '+e.message);btn.disabled=false;btn.textContent='✓ Registrar pago';}
 }
-async function updateOrderStatus(newStatus){
-  const btn=document.getElementById(newStatus==='confirmado'?'btnConfirmar':'btnEntregar');
-  if(btn){btn.disabled=true;btn.textContent='Actualizando...';}
-  try{const{error}=await sb.from('orders').update({status:newStatus}).eq('id',currentOrderId);if(error)throw error;const oi=allOrders.findIndex(x=>x.id===currentOrderId);if(oi>=0)allOrders[oi]={...allOrders[oi],status:newStatus};closeModal();showToast(newStatus==='confirmado'?'✓ Pedido confirmado':'📦 Entrega registrada');rerenderCurrent();}
-  catch(e){showError('Error: '+e.message);if(btn)btn.disabled=false;}
-}
+
 async function cancelarPedido(){
   if(!confirm('¿Cancelar este pedido?'))return;
-  try{const{error}=await sb.from('orders').update({status:'cancelado'}).eq('id',currentOrderId);if(error)throw error;const oi=allOrders.findIndex(x=>x.id===currentOrderId);if(oi>=0)allOrders[oi]={...allOrders[oi],status:'cancelado'};closeModal();showToast('Pedido cancelado');rerenderCurrent();}
-  catch(e){showError('Error: '+e.message);}
+  try{
+    const{error}=await sb.from('orders').update({stage:'cancelado'}).eq('id',currentOrderId);
+    if(error)throw error;
+    const oi=allOrders.findIndex(x=>x.id===currentOrderId);
+    if(oi>=0)allOrders[oi]={...allOrders[oi],stage:'cancelado'};
+    closeModal();showToast('Pedido cancelado');rerenderCurrent();
+  }catch(e){showError('Error: '+e.message);}
 }
+
 async function eliminarPedido(){
-  const o=allOrders.find(x=>x.id===currentOrderId);
-  if(!o)return;
+  const o=allOrders.find(x=>x.id===currentOrderId);if(!o)return;
   if(!confirm(`¿Eliminar el pedido de ${o.client_name} permanentemente?\nEsta acción no se puede deshacer.`))return;
   try{
-    // 1. Borrar pagos asociados
-    const{error:ep}=await sb.from('payments').delete().eq('order_id',currentOrderId);
-    if(ep&&ep.code!=='PGRST116')throw ep;
-    // 2. Borrar el pedido
-    const{error:eo}=await sb.from('orders').delete().eq('id',currentOrderId);
-    if(eo)throw eo;
-    // 3. Actualizar estado local sin esperar realtime
+    await sb.from('payments').delete().eq('order_id',currentOrderId);
+    const{error}=await sb.from('orders').delete().eq('id',currentOrderId);
+    if(error)throw error;
     allOrders=allOrders.filter(x=>x.id!==currentOrderId);
     allPayments=allPayments.filter(x=>x.order_id!==currentOrderId);
     closeModal();showToast('🗑 Pedido eliminado');rerenderCurrent();
-  }catch(e){
-    console.error('eliminarPedido error:',e);
-    showError('Error al eliminar: '+( e.message||e.details||JSON.stringify(e)));
-  }
+  }catch(e){showError('Error al eliminar: '+e.message);}
 }
+
 function openWhatsApp(){
   const o=allOrders.find(x=>x.id===currentOrderId);if(!o||!o.client_phone)return;
   const prod=products.find(p=>p.id===o.product_id);
   const cycle=CYCLES.find(c=>c.id===o.cycle_id);
   const clean=o.client_phone.replace(/\D/g,'');
   const firstName=o.client_name.trim().split(' ')[0];
-  const diaEntrega=cycle?cycle.entrega:'el día de entrega';
-  const msg=encodeURIComponent(`Hola ${firstName} 🍌 Te confirmamos tu pedido de Bananísimo:\n\n📦 ${prod?.name||o.product_id} × ${o.qty}\n💰 Total: ${formatPrice(o.qty*o.price)}\n\nLa entrega se realizará el ${diaEntrega}. Por favor compartinos la ubicación donde querés recibir tu pancito 📍\n\n¡Que tengás un bonito día! 🤎`);
+  const msg=encodeURIComponent(`Hola ${firstName} 🍌 Tu pedido de Bananísimo:\n📦 ${prod?.name||''} × ${o.qty}\n💰 Total: ${formatPrice(o.qty*o.price)}\n📅 Entrega: ${cycle?cycle.entrega:'coordinamos'}\nCompartinos tu ubicación 📍 ¡Gracias! 🤎`);
   window.open(`https://wa.me/506${clean}?text=${msg}`,'_blank');
 }
-function closeModal(e){if(e&&e.target!==document.getElementById('modalOverlay'))return;document.getElementById('modalOverlay').classList.remove('open');}
 
+function closeModal(e){
+  if(e&&e.target!==document.getElementById('modalOverlay'))return;
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+// ── EDIT PANEL ────────────────────────────────────────────────
 function openEditPanel(){
   const o=allOrders.find(x=>x.id===currentOrderId);if(!o)return;
   const pagos=orderPayments(currentOrderId);
   const orderDate=o.order_date||o.created_at.slice(0,10);
   const today=new Date().toISOString().slice(0,10);
+  const stage=o.stage||'recibido';
 
-  // Panel de edición — reemplaza contenido del modal
   document.getElementById('modalContent').innerHTML=`
     <p class="modal-title" style="margin-bottom:16px;">✏️ Editar pedido</p>
-    <p style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Cliente</p>
-    <p style="font-size:14px;font-weight:700;color:var(--cacao);margin-bottom:16px;">${o.client_name}</p>
+    <p style="font-size:13px;font-weight:700;color:var(--cacao);margin-bottom:16px;">${o.client_name}</p>
 
-    <div class="form-group">
-      <label class="form-label">Fecha del pedido</label>
-      <input class="form-input" id="edit_date" type="date" value="${orderDate}" max="${today}">
+    <div class="form-group"><label class="form-label">Stage actual</label>
+      <div class="stage-selector">
+        ${[...STAGES,'cancelado'].map(s=>{
+          const sc=STAGE_COLOR[s];
+          const isActive=stage===s;
+          return`<button class="stage-opt ${isActive?'active':''}" data-stage="${s}"
+            style="${isActive?`background:${sc.bg};color:${sc.color};border-color:${sc.color};`:''}"
+            onclick="selectEditStage(this,'${s}')">${STAGE_ICON[s]} ${STAGE_LABEL[s]}</button>`;
+        }).join('')}
+      </div>
     </div>
 
-    <div class="form-group">
-      <label class="form-label">Ciclo de entrega</label>
+    <div class="form-group"><label class="form-label">Fecha del pedido</label>
+      <input class="form-input" id="edit_date" type="date" value="${orderDate}" max="${today}">
+    </div>
+    <div class="form-group"><label class="form-label">Ciclo de entrega</label>
       <select class="form-input" id="edit_cycle">
         ${CYCLES.map(c=>`<option value="${c.id}" ${o.cycle_id===c.id?'selected':''}>${c.label} → entrega ${c.entrega}</option>`).join('')}
       </select>
     </div>
-
-    <div class="form-group">
-      <label class="form-label">Notas</label>
+    <div class="form-group"><label class="form-label">Notas</label>
       <input class="form-input" id="edit_notes" type="text" value="${o.notes||''}" placeholder="Sin notas">
     </div>
 
-    ${pagos.length>0?`
-    <div style="margin-bottom:16px;">
-      <label class="form-label">Fecha de pagos registrados</label>
+    ${pagos.length>0?`<div class="form-group"><label class="form-label">Fecha de pagos</label>
       <div style="background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;">
-        ${pagos.map((p,idx)=>`
-          <div class="payment-row" style="align-items:center;">
-            <div>
-              <div class="payment-method">${METODOS[p.method]||p.method} · ${formatPrice(p.amount)}</div>
-            </div>
-            <input type="date" id="edit_pay_${p.id}" value="${(p.payment_date||p.created_at.slice(0,10))}"
-              style="border:0.5px solid var(--border-strong);border-radius:var(--radius-sm);padding:5px 8px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:600;color:var(--text);background:var(--white);outline:none;max-width:140px;">
-          </div>`).join('')}
+        ${pagos.map(p=>`<div class="payment-row" style="align-items:center;">
+          <div><div class="payment-method">${METODOS[p.method]||p.method} · ${formatPrice(p.amount)}</div></div>
+          <input type="date" id="edit_pay_${p.id}" value="${(p.payment_date||p.created_at.slice(0,10))}"
+            style="border:0.5px solid var(--border-strong);border-radius:var(--radius-sm);padding:5px 8px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:600;color:var(--text);background:var(--white);outline:none;max-width:140px;">
+        </div>`).join('')}
       </div>
     </div>`:''}
 
     <div class="modal-actions">
-      <button class="btn-status btn-entregar" onclick="saveOrderEdit()">Guardar cambios</button>
+      <button class="btn-status btn-next" onclick="saveOrderEdit()">Guardar cambios</button>
       <button class="btn-close-modal" onclick="openOrderModal(currentOrderId)">← Volver</button>
-    </div>
-  `;
+    </div>`;
+}
+
+let editStageSelected=null;
+function selectEditStage(btn,stage){
+  editStageSelected=stage;
+  document.querySelectorAll('.stage-opt').forEach(b=>{
+    b.classList.remove('active');
+    b.style.background='';b.style.color='';b.style.borderColor='';
+  });
+  const sc=STAGE_COLOR[stage];
+  btn.classList.add('active');
+  btn.style.background=sc.bg;btn.style.color=sc.color;btn.style.borderColor=sc.color;
 }
 
 async function saveOrderEdit(){
+  const o=allOrders.find(x=>x.id===currentOrderId);if(!o)return;
   const btn=event.target;btn.disabled=true;btn.textContent='Guardando...';
   try{
     const newDate=document.getElementById('edit_date').value;
     const newCycle=document.getElementById('edit_cycle').value;
     const newNotes=document.getElementById('edit_notes').value.trim();
     const newWeekKey=getWeekKey(new Date(newDate+'T12:00:00'));
+    const newStage=editStageSelected||(o.stage||'recibido');
 
-    // Actualizar pedido
     const{error:eo}=await sb.from('orders').update({
-      order_date:newDate,
-      cycle_id:newCycle,
-      notes:newNotes||null,
-      week_key:newWeekKey,
+      order_date:newDate,cycle_id:newCycle,notes:newNotes||null,
+      week_key:newWeekKey,stage:newStage,
     }).eq('id',currentOrderId);
     if(eo)throw eo;
 
-    // Actualizar fecha de cada pago si cambió
     const pagos=orderPayments(currentOrderId);
     for(const p of pagos){
       const el=document.getElementById('edit_pay_'+p.id);
       if(!el)continue;
       const newPayDate=el.value;
-      if(newPayDate&&newPayDate!==p.created_at.slice(0,10)){
-        const{error:ep}=await sb.from('payments').update({
-          payment_date:newPayDate
-        }).eq('id',p.id);
-        if(ep)throw ep;
-        // actualizar local
+      if(newPayDate&&newPayDate!==(p.payment_date||p.created_at.slice(0,10))){
+        await sb.from('payments').update({payment_date:newPayDate}).eq('id',p.id);
         const pi=allPayments.findIndex(x=>x.id===p.id);
         if(pi>=0)allPayments[pi]={...allPayments[pi],payment_date:newPayDate};
       }
     }
-
-    // Actualizar local inmediato
     const oi=allOrders.findIndex(x=>x.id===currentOrderId);
-    if(oi>=0)allOrders[oi]={...allOrders[oi],order_date:newDate,cycle_id:newCycle,notes:newNotes||null,week_key:newWeekKey};
-
+    if(oi>=0)allOrders[oi]={...allOrders[oi],order_date:newDate,cycle_id:newCycle,notes:newNotes||null,week_key:newWeekKey,stage:newStage};
+    editStageSelected=null;
     showToast('✓ Pedido actualizado');openOrderModal(currentOrderId);rerenderCurrent();
-  }catch(e){
-    showError('Error: '+e.message);
-    btn.disabled=false;btn.textContent='Guardar cambios';
-  }
+  }catch(e){showError('Error: '+e.message);btn.disabled=false;btn.textContent='Guardar cambios';}
 }
 
+// ── STOCK SCREEN ──────────────────────────────────────────────
 function renderStock(){
-  const criticos=ingredients.filter(i=>ingStatus(i)==='critico');
-  const alertas=ingredients.filter(i=>ingStatus(i)==='alerta');
-  const ok=ingredients.filter(i=>ingStatus(i)==='ok');
+  const filtered=ingredients.filter(i=>(i.category||'ingrediente')===stockTab);
+  const criticos=filtered.filter(i=>ingStatus(i)==='critico');
+  const alertas=filtered.filter(i=>ingStatus(i)==='alerta');
+  const ok=filtered.filter(i=>ingStatus(i)==='ok');
   const sorted=[...criticos,...alertas,...ok];
   const el=document.getElementById('screen-stock');
   el.innerHTML=`
-    ${criticos.length>0?`<div class="alert-banner" style="cursor:default;"><div class="alert-banner-title">🔴 ${criticos.length} ingrediente${criticos.length>1?'s':''} en nivel crítico</div><div class="alert-banner-text">Reposición urgente antes de hornear.</div></div>`:''}
+    <div class="view-tabs" style="margin-bottom:12px;">
+      <button class="view-tab ${stockTab==='ingrediente'?'active':''}" onclick="stockTab='ingrediente';renderStock()">🌾 Ingredientes</button>
+      <button class="view-tab ${stockTab==='material'?'active':''}" onclick="stockTab='material';renderStock()">📦 Materiales</button>
+    </div>
+    ${criticos.length>0?`<div class="alert-banner" style="cursor:default;">
+      <div class="alert-banner-title">🔴 ${criticos.length} ${stockTab==='ingrediente'?'ingrediente':'material'}${criticos.length>1?'s':''} en nivel crítico</div>
+      <div class="alert-banner-text">Reposición urgente antes de producir.</div>
+    </div>`:''}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <span class="sec-label" style="margin:0;">Ingredientes (${ingredients.length})</span>
+      <span class="sec-label" style="margin:0;">${stockTab==='ingrediente'?'Ingredientes':'Materiales'} (${sorted.length})</span>
       <div style="display:flex;gap:8px;font-size:11px;font-weight:700;">
         <span style="color:var(--rojo);">🔴 ${criticos.length}</span>
         <span style="color:var(--amarillo);">🟡 ${alertas.length}</span>
@@ -744,14 +843,19 @@ function renderStock(){
       const max=Math.max(i.warn_stock*1.5,i.stock,1);
       const pct=Math.min(100,Math.round((i.stock/max)*100));
       return`<div class="ing-card status-${st}" data-id="${i.id}">
-        <div class="ing-top"><div class="ing-name">${i.name}</div><div class="ing-stock-val ${st}">${i.stock} ${i.unit}</div></div>
+        <div class="ing-top">
+          <div><div class="ing-name">${i.name}</div><div class="ing-meta">${i.cost_per_unit?formatPrice(i.cost_per_unit)+' / '+i.unit:''}</div></div>
+          <div class="ing-stock-val ${st}">${i.stock} ${i.unit}</div>
+        </div>
         <div class="ing-bar-track"><div class="ing-bar-fill ${st}" style="width:${pct}%"></div></div>
         <div class="ing-bottom"><span>Mín: ${i.min_stock} ${i.unit}</span><span>Alerta: ${i.warn_stock} ${i.unit}</span></div>
       </div>`;
     }).join('')}
+    ${sorted.length===0?`<div class="empty-state"><div class="e-icon">📦</div><div class="e-title">Sin ${stockTab==='ingrediente'?'ingredientes':'materiales'}</div></div>`:''}
   `;
   el.querySelectorAll('.ing-card').forEach(card=>card.addEventListener('click',()=>openIngModal(card.dataset.id)));
 }
+
 function openIngModal(ingId){
   currentIngId=ingId;ingMoveType='compra';
   const i=ingredients.find(x=>x.id===ingId);if(!i)return;
@@ -795,51 +899,146 @@ async function saveIngMovement(){
   const i=ingredients.find(x=>x.id===currentIngId);if(!i)return;
   const newStock=ingMoveType==='compra'?i.stock+qty:ingMoveType==='uso'?Math.max(0,i.stock-qty):qty;
   try{
-    const{error:e1}=await sb.from('ingredients').update({stock:newStock}).eq('id',currentIngId);
-    if(e1)throw e1;
+    const{error}=await sb.from('ingredients').update({stock:newStock}).eq('id',currentIngId);
+    if(error)throw error;
     await sb.from('stock_movements').insert({ingredient_id:currentIngId,type:ingMoveType,qty:ingMoveType==='uso'?-qty:qty});
+    const idx=ingredients.findIndex(x=>x.id===currentIngId);
+    if(idx>=0)ingredients[idx]={...ingredients[idx],stock:newStock};
     closeModal();updateStockBadge();showToast('✓ Stock actualizado');rerenderCurrent();
   }catch(e){showError('Error: '+e.message);}
 }
 
+// ── FINANCE SCREEN ────────────────────────────────────────────
+function renderFinance(){
+  const el=document.getElementById('screen-finance');
+  const viewOrders=getFinanceOrders();
+  const active=activeOrders(viewOrders);
+  const label=getFinanceLabel();
+  const canNext=(financeView==='week'&&finWeekOffset<0)||(financeView==='month'&&finMonthOffset<0);
+
+  // Calcular totales
+  const ingresos=active.reduce((s,o)=>s+o.qty*o.price,0);
+  const costos=active.reduce((s,o)=>s+orderCostEstimate(o),0);
+  const ganancia=ingresos-costos;
+  const cobrado=active.reduce((s,o)=>s+orderPaidAmount(o.id),0);
+  const porCobrar=active.reduce((s,o)=>s+Math.max(0,o.qty*o.price-orderPaidAmount(o.id)),0);
+  const margen=ingresos>0?Math.round((ganancia/ingresos)*100):0;
+
+  const navBtnStyle='background:rgba(255,255,255,0.14);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer;';
+
+  const customFields=financeView==='custom'?`
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <input type="date" id="fin_from" value="${finCustomFrom}" onchange="finCustomFrom=this.value;renderFinance()"
+        style="flex:1;background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;padding:6px 10px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:600;outline:none;">
+      <span style="color:var(--banano);line-height:32px;">→</span>
+      <input type="date" id="fin_to" value="${finCustomTo}" onchange="finCustomTo=this.value;renderFinance()"
+        style="flex:1;background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;padding:6px 10px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:600;outline:none;">
+    </div>`:'';
+
+  el.innerHTML=`
+    <div class="finance-header">
+      <div style="display:flex;gap:6px;margin-bottom:12px;">
+        ${['week','month','custom'].map(v=>`<button onclick="financeView='${v}';finWeekOffset=0;finMonthOffset=0;renderFinance()"
+          style="flex:1;padding:5px 4px;border-radius:8px;border:0.5px solid rgba(255,255,255,${financeView===v?'0.5':'0.2'});background:${financeView===v?'rgba(239,159,39,0.25)':'transparent'};color:${financeView===v?'var(--banano)':'rgba(250,238,218,0.6)'};font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase;">
+          ${v==='week'?'Semana':v==='month'?'Mes':'Rango'}
+        </button>`).join('')}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <p style="font-size:14px;font-weight:700;color:var(--crema);">${label}</p>
+        ${financeView!=='custom'?`<div style="display:flex;gap:6px;">
+          <button onclick="${financeView==='week'?'finWeekOffset--;':'finMonthOffset--;'}renderFinance()" style="${navBtnStyle}">←</button>
+          <button onclick="${financeView==='week'?'finWeekOffset++;':'finMonthOffset++;'}renderFinance()" ${!canNext?'disabled style="opacity:0.25;background:transparent;border:0.5px solid rgba(255,255,255,0.1);color:var(--crema);border-radius:8px;width:34px;height:34px;font-size:16px;"':''} ${canNext?`style="${navBtnStyle}"`:''}>→</button>
+        </div>`:''}
+      </div>
+      ${customFields}
+      <div class="finance-main-val">${formatPrice(ganancia)}</div>
+      <div class="finance-main-label">Ganancia estimada · Margen ${margen}%</div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-val" style="font-size:20px;">${formatPrice(ingresos)}</div><div class="stat-label">Ingresos</div><div class="stat-sub">${active.length} pedidos</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:20px;">${formatPrice(costos)}</div><div class="stat-label">Costo estimado</div><div class="stat-sub">₡1.845 / pan</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:20px;color:var(--hoja);">${formatPrice(cobrado)}</div><div class="stat-label">Cobrado</div><div class="stat-sub">Pagos recibidos</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:20px;color:var(--rojo);">${formatPrice(porCobrar)}</div><div class="stat-label">Por cobrar</div><div class="stat-sub">Pendiente</div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:12px;font-weight:700;color:var(--text-muted);">Cobro</span>
+        <span style="font-size:12px;font-weight:700;color:var(--cacao);">${ingresos>0?Math.round(cobrado/ingresos*100):0}%</span>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${ingresos>0?Math.min(100,Math.round(cobrado/ingresos*100)):0}%;background:var(--hoja);"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px;">
+        <span style="font-size:12px;font-weight:700;color:var(--text-muted);">Margen</span>
+        <span style="font-size:12px;font-weight:700;color:var(--cacao);">${margen}%</span>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${Math.max(0,margen)}%;background:var(--dorado);"></div></div>
+    </div>
+
+    <span class="sec-label">Detalle por pedido</span>
+    ${active.length===0
+      ?`<div class="empty-state"><div class="e-icon">💰</div><div class="e-title">Sin pedidos en este período</div></div>`
+      :active.sort((a,b)=>(b.order_date||b.created_at).localeCompare(a.order_date||a.created_at)).map(o=>{
+        const g=orderGanancia(o);
+        const prod=products.find(p=>p.id===o.product_id);
+        const paid=orderPaidAmount(o.id);
+        const total=o.qty*o.price;
+        const stage=o.stage||'recibido';
+        const sc=STAGE_COLOR[stage];
+        return`<div class="order-finance-row" data-id="${o.id}">
+          <div>
+            <div class="ofr-name">${o.client_name}</div>
+            <div class="ofr-detail">${prod?prod.name:''} × ${o.qty} · <span style="background:${sc.bg};color:${sc.color};padding:1px 6px;border-radius:10px;font-size:10px;font-weight:700;">${STAGE_LABEL[stage]}</span></div>
+          </div>
+          <div class="ofr-right">
+            <div class="ofr-ganancia ${g>=0?'pos':'neg'}">${g>=0?'+':''}${formatPrice(g)}</div>
+            <div style="font-size:11px;color:${paid>=total?'var(--hoja)':'var(--rojo)'};font-weight:600;">${paid>=total?'Pagado':formatPrice(paid)+' cobrado'}</div>
+          </div>
+        </div>`;
+      }).join('')}
+  `;
+  el.querySelectorAll('.order-finance-row').forEach(row=>row.addEventListener('click',()=>openOrderModal(row.dataset.id)));
+}
+
+// ── CONFIG SCREEN ─────────────────────────────────────────────
 function renderConfig(){
   const{url}=loadConfig();
   const el=document.getElementById('screen-config');
   el.innerHTML=`
     <span class="sec-label">Conexión Supabase</span>
-    <div class="form-card" style="margin-bottom:14px;">
+    <div class="card">
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">Proyecto conectado:</p>
-      <p style="font-size:13px;font-weight:700;color:var(--cacao);word-break:break-all;">${url||'No configurado'}</p>
-      <button onclick="resetConfig()" style="margin-top:14px;font-family:'Quicksand',sans-serif;font-size:13px;font-weight:700;padding:10px 16px;border-radius:var(--radius-sm);border:0.5px solid var(--border-strong);background:transparent;cursor:pointer;color:var(--cacao);width:100%;">Reconfigurar conexión</button>
+      <p style="font-size:12px;font-weight:700;color:var(--cacao);word-break:break-all;margin-bottom:14px;">${url||'No configurado'}</p>
+      <button onclick="resetConfig()" style="font-family:'Quicksand',sans-serif;font-size:13px;font-weight:700;padding:10px 16px;border-radius:var(--radius-sm);border:0.5px solid var(--border-strong);background:transparent;cursor:pointer;color:var(--cacao);width:100%;">Reconfigurar conexión</button>
     </div>
-    <span class="sec-label">Resumen por ciclo — semana actual</span>
-    ${CYCLES.map(c=>{
-      const co=weekOrders(getWeekKey()).filter(o=>o.cycle_id===c.id&&o.status!=='cancelado');
-      const panes=co.reduce((s,o)=>s+o.qty,0);
-      const cobrado=co.filter(o=>o.status==='entregado').reduce((s,o)=>s+o.qty*o.price,0);
-      return`<div class="ciclo-card"><div class="ciclo-header"><div class="ciclo-title">🍞 Ciclo ${c.label}</div><div class="ciclo-badge">Entrega ${c.entrega}</div></div><div class="ciclo-row"><span class="cr-label">Panes</span><span>${panes} / ${MAX_DIA}</span></div><div class="ciclo-row"><span class="cr-label">Pedidos</span><span>${co.length}</span></div><div class="ciclo-row"><span class="cr-label">Cobrado</span><span>${formatPrice(cobrado)}</span></div></div>`;
-    }).join('')}
-    <span class="sec-label" style="margin-top:16px;">Catálogo</span>
-    ${products.map(p=>`<div class="product-pill"><div><div class="prod-name">${p.name}</div><div class="prod-desc">${p.description||''}</div></div><div class="prod-price">${formatPrice(p.price)}</div></div>`).join('')}
+    <span class="sec-label" style="margin-top:16px;">Catálogo de productos</span>
+    ${products.map(p=>`<div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;">
+      <div><div style="font-size:14px;font-weight:700;color:var(--cacao);">${p.name}</div><div style="font-size:12px;color:var(--text-muted);">${p.description||''}</div></div>
+      <div style="font-size:17px;font-weight:700;color:var(--dorado);margin-left:10px;">${formatPrice(p.price)}</div>
+    </div>`).join('')}
+    <span class="sec-label" style="margin-top:16px;">Resumen rápido</span>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-val">${allOrders.filter(o=>o.stage==='recibido').length}</div><div class="stat-label">Recibidos</div></div>
+      <div class="stat-card"><div class="stat-val">${allOrders.filter(o=>o.stage==='entregado').length}</div><div class="stat-label">Entregados</div></div>
+    </div>
   `;
 }
-function resetConfig(){if(!confirm('¿Borrar las credenciales y reconfigurar?'))return;localStorage.removeItem('sb_url');localStorage.removeItem('sb_key');location.reload();}
+function resetConfig(){if(!confirm('¿Borrar las credenciales?'))return;localStorage.removeItem('sb_url');localStorage.removeItem('sb_key');location.reload();}
 
-// SERVICE WORKER — auto-actualización
+// ── SERVICE WORKER ────────────────────────────────────────────
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('/bananisimo/sw.js', {scope: '/bananisimo/'}).then(reg=>{
+    navigator.serviceWorker.register('/bananisimo/sw.js',{scope:'/bananisimo/'}).then(reg=>{
       reg.addEventListener('updatefound',()=>{
         const nw=reg.installing;
         nw.addEventListener('statechange',()=>{
-          if(nw.state==='installed'&&navigator.serviceWorker.controller){
-            showToast('🍌 Nueva versión disponible — recargá la app',6000);
-          }
+          if(nw.state==='installed'&&navigator.serviceWorker.controller)showToast('🍌 Nueva versión disponible — recargá la app',6000);
         });
       });
     });
   });
 }
+
 initApp();
 </script>
 </body>
