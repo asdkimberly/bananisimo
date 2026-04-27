@@ -643,7 +643,8 @@ function renderNew(){
     <div class="form-group"><label class="form-label">Notas (opcional)</label>
       <input class="form-input" id="fn_notes" type="text" placeholder="Ej: sin maní, dirección especial...">
     </div>
-    <div id="fn_total" style="font-size:15px;font-weight:700;color:var(--cacao);text-align:right;margin-bottom:16px;"></div>
+    <div id="fn_total" style="font-size:15px;font-weight:700;color:var(--cacao);text-align:right;margin-bottom:12px;"></div>
+    <div id="stock_warnings"></div>
     <button class="btn-primary" id="btnSaveOrder" onclick="saveOrder()">Guardar pedido</button>
   </div>`;
   updateTotal();
@@ -658,7 +659,56 @@ function updateTotal(){
   const price=parseInt(sel.selectedOptions[0]?.dataset.price||0);
   const t=document.getElementById('fn_total');
   if(t)t.textContent=price?`Total: ${formatPrice(price*newQty)}`:'';
+  // Mostrar advertencias de stock
+  renderStockWarnings(sel.value,newQty);
 }
+function renderStockWarnings(productId,qty){
+  const container=document.getElementById('stock_warnings');
+  if(!container)return;
+  const recipe=productMaterials.filter(pm=>pm.product_id===productId);
+  if(recipe.length===0){container.innerHTML='';return;}
+  const warns=[];
+  for(const pm of recipe){
+    const ing=ingredients.find(i=>i.id===pm.ingredient_id);
+    if(!ing)continue;
+    const needed=pm.qty_per_unit*qty;
+    const after=ing.stock-needed;
+    if(after<ing.min_stock)warns.push({name:ing.name,needed,stock:ing.stock,unit:ing.unit,status:'critico',after});
+    else if(after<ing.warn_stock)warns.push({name:ing.name,needed,stock:ing.stock,unit:ing.unit,status:'alerta',after});
+  }
+  if(warns.length===0){container.innerHTML='';return;}
+  container.innerHTML=`<div style="background:#fdecea;border:0.5px solid #f5c6cb;border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;">
+    <p style="font-size:12px;font-weight:700;color:var(--rojo);margin-bottom:6px;">⚠️ Stock insuficiente después de este pedido</p>
+    ${warns.map(w=>`<div style="font-size:11px;color:#721c24;margin-bottom:2px;">
+      ${w.name}: tenés ${w.stock} ${w.unit}, necesitás ${w.needed} ${w.unit} → quedará ${Math.max(0,w.after).toFixed(1)} ${w.unit} ${w.status==='critico'?'🔴':'🟡'}
+    </div>`).join('')}
+  </div>`;
+}
+// ── STOCK — REBAJO AUTOMÁTICO ─────────────────────────────────
+async function rebajarStock(productId, qty){
+  // Obtener receta del producto
+  const recipe=productMaterials.filter(pm=>pm.product_id===productId);
+  if(recipe.length===0)return; // sin receta configurada
+  const alertas=[];
+  for(const pm of recipe){
+    const ing=ingredients.findIndex(x=>x.id===pm.ingredient_id);
+    if(ing<0)continue;
+    const consumo=pm.qty_per_unit*qty;
+    const newStock=Math.max(0,ingredients[ing].stock-consumo);
+    // Actualizar en Supabase
+    await sb.from('ingredients').update({stock:newStock}).eq('id',pm.ingredient_id);
+    // Registrar movimiento
+    await sb.from('stock_movements').insert({ingredient_id:pm.ingredient_id,type:'uso',qty:-consumo});
+    // Actualizar local
+    ingredients[ing]={...ingredients[ing],stock:newStock};
+    // Verificar alerta
+    const st=ingStatus(ingredients[ing]);
+    if(st!=='ok')alertas.push({name:ingredients[ing].name,status:st,stock:newStock,unit:ingredients[ing].unit});
+  }
+  updateStockBadge();
+  return alertas;
+}
+
 async function saveOrder(){
   const name=document.getElementById('fn_name').value.trim();
   const phone=document.getElementById('fn_phone').value.trim();
@@ -680,8 +730,19 @@ async function saveOrder(){
     }).select().single();
     if(error)throw error;
     if(newOrder)allOrders.unshift(newOrder);
-    showToast('✓ Pedido guardado');newQty=1;
-    showScreen('orders',document.getElementById('nav-orders'));
+    // Rebajar stock según receta
+    const alertas=await rebajarStock(productId,newQty);
+    if(alertas&&alertas.length>0){
+      const criticos=alertas.filter(a=>a.status==='critico');
+      const msg=criticos.length>0
+        ?`⚠️ Stock crítico: ${criticos.map(a=>a.name).join(', ')}`
+        :`⚠️ Stock bajo: ${alertas.map(a=>a.name).join(', ')}`;
+      showToast(msg,5000);
+    } else {
+      showToast('✓ Pedido guardado');
+    }
+    newQty=1;
+    showScreen('dashboard',document.getElementById('nav-dashboard'));
   }catch(e){showError('Error: '+e.message);btn.disabled=false;btn.innerHTML='Guardar pedido';}
 }
 
@@ -822,7 +883,7 @@ function openWhatsApp(){
   const cycle=CYCLES.find(c=>c.id===o.cycle_id);
   const clean=o.client_phone.replace(/\D/g,'');
   const firstName=o.client_name.trim().split(' ')[0];
-  const msg=encodeURIComponent(`Hola ${firstName}, Confirmamos la entrega de tu pedido de Bananísimo 🍌:\n📦 ${prod?.name||''} × ${o.qty}\n💰 Total: ${formatPrice(o.qty*o.price)}\n📅 Entrega: ${cycle?cycle.entrega:'coordinamos'}\nCompartinos tu ubicación para recibir tu orden📍 ¡Que estés muy bien! 🤎`);
+  const msg=encodeURIComponent(`Hola ${firstName} 🍌 Tu pedido de Bananísimo:\n📦 ${prod?.name||''} × ${o.qty}\n💰 Total: ${formatPrice(o.qty*o.price)}\n📅 Entrega: ${cycle?cycle.entrega:'coordinamos'}\nCompartinos tu ubicación 📍 ¡Gracias! 🤎`);
   window.open(`https://wa.me/506${clean}?text=${msg}`,'_blank');
 }
 
@@ -1121,25 +1182,95 @@ function renderConfig(){
   const{url}=loadConfig();
   const el=document.getElementById('screen-config');
   el.innerHTML=`
-    <span class="sec-label">Conexión Supabase</span>
+    <span class="sec-label">Recetas por producto</span>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6;">Definí cuántas unidades de cada ingrediente/material se usan por loaf. El stock se rebajará automáticamente al crear un pedido.</p>
+    ${products.map(p=>{
+      const recipe=productMaterials.filter(pm=>pm.product_id===p.id);
+      const recipeItems=recipe.map(pm=>{
+        const ing=ingredients.find(i=>i.id===pm.ingredient_id);
+        return ing?`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid #F1EFE8;">
+          <span style="font-size:12px;color:var(--text);">${ing.name}</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;font-weight:700;color:var(--cacao);">${pm.qty_per_unit} ${ing.unit}</span>
+            <button onclick="removeRecipeItem('${pm.id}')" style="background:#fde8e8;color:#922b21;border:none;border-radius:6px;width:24px;height:24px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">×</button>
+          </div>
+        </div>`:'';
+      }).join('');
+      return`<div class="card" style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--cacao);">${p.name}</div>
+            <div style="font-size:12px;color:var(--text-muted);">${formatPrice(p.price)}</div>
+          </div>
+          <button onclick="openRecipeEditor('${p.id}')"
+            style="background:var(--crema);color:var(--cacao);border:0.5px solid var(--border-strong);border-radius:var(--radius-sm);padding:6px 12px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">
+            + Agregar
+          </button>
+        </div>
+        ${recipe.length===0
+          ?`<p style="font-size:12px;color:var(--text-muted);font-style:italic;">Sin receta configurada</p>`
+          :recipeItems}
+      </div>`;
+    }).join('')}
+    <span class="sec-label" style="margin-top:16px;">Conexión Supabase</span>
     <div class="card">
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">Proyecto conectado:</p>
-      <p style="font-size:12px;font-weight:700;color:var(--cacao);word-break:break-all;margin-bottom:14px;">${url||'No configurado'}</p>
+      <p style="font-size:12px;font-weight:700;color:var(--cacao);word-break:break-all;margin-bottom:12px;">${url||'No configurado'}</p>
       <button onclick="resetConfig()" style="font-family:'Quicksand',sans-serif;font-size:13px;font-weight:700;padding:10px 16px;border-radius:var(--radius-sm);border:0.5px solid var(--border-strong);background:transparent;cursor:pointer;color:var(--cacao);width:100%;">Reconfigurar conexión</button>
-    </div>
-    <span class="sec-label" style="margin-top:16px;">Catálogo de productos</span>
-    ${products.map(p=>`<div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;">
-      <div><div style="font-size:14px;font-weight:700;color:var(--cacao);">${p.name}</div><div style="font-size:12px;color:var(--text-muted);">${p.description||''}</div></div>
-      <div style="font-size:17px;font-weight:700;color:var(--dorado);margin-left:10px;">${formatPrice(p.price)}</div>
-    </div>`).join('')}
-    <span class="sec-label" style="margin-top:16px;">Resumen rápido</span>
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-val">${allOrders.filter(o=>o.stage==='recibido').length}</div><div class="stat-label">Recibidos</div></div>
-      <div class="stat-card"><div class="stat-val">${allOrders.filter(o=>o.stage==='entregado').length}</div><div class="stat-label">Entregados</div></div>
     </div>
   `;
 }
 function resetConfig(){if(!confirm('¿Borrar las credenciales?'))return;localStorage.removeItem('sb_url');localStorage.removeItem('sb_key');location.reload();}
+
+// ── EDITOR DE RECETAS ─────────────────────────────────────────
+let editingProductId=null;
+function openRecipeEditor(productId){
+  editingProductId=productId;
+  const p=products.find(x=>x.id===productId);
+  const existing=productMaterials.filter(pm=>pm.product_id===productId).map(pm=>pm.ingredient_id);
+  const available=ingredients.filter(i=>!existing.includes(i.id));
+  document.getElementById('modalContent').innerHTML=`
+    <p class="modal-title" style="margin-bottom:4px;">Receta — ${p?.name}</p>
+    <p class="modal-sub">Cantidad por loaf</p>
+    <div class="form-group"><label class="form-label">Ingrediente / Material</label>
+      <select class="form-input" id="recipe_ing">
+        <option value="">— Seleccioná —</option>
+        ${available.map(i=>`<option value="${i.id}">${i.name} (${i.unit})</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Cantidad por loaf</label>
+      <input class="form-input" id="recipe_qty" type="number" step="0.1" placeholder="Ej: 1, 2.5, 30">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-status btn-next" onclick="saveRecipeItem()">Agregar a receta</button>
+      <button class="btn-close-modal" onclick="closeModal();renderConfig();">Volver</button>
+    </div>`;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+async function saveRecipeItem(){
+  const ingId=document.getElementById('recipe_ing').value;
+  const qty=parseFloat(document.getElementById('recipe_qty').value);
+  if(!ingId){showToast('⚠️ Seleccioná un ingrediente');return;}
+  if(!qty||qty<=0){showToast('⚠️ Ingresá una cantidad válida');return;}
+  const btn=event.target;btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    const{data,error}=await sb.from('product_materials').insert({
+      product_id:editingProductId,ingredient_id:ingId,qty_per_unit:qty
+    }).select().single();
+    if(error)throw error;
+    productMaterials.push(data);
+    showToast('✓ Ingrediente agregado');
+    closeModal();renderConfig();
+  }catch(e){showError('Error: '+e.message);btn.disabled=false;btn.textContent='Agregar a receta';}
+}
+async function removeRecipeItem(pmId){
+  if(!confirm('¿Quitar este ingrediente de la receta?'))return;
+  try{
+    const{error}=await sb.from('product_materials').delete().eq('id',pmId);
+    if(error)throw error;
+    productMaterials=productMaterials.filter(pm=>pm.id!==pmId);
+    renderConfig();showToast('✓ Ingrediente quitado');
+  }catch(e){showError('Error: '+e.message);}
+}
 
 // ── SERVICE WORKER ────────────────────────────────────────────
 if('serviceWorker' in navigator){
