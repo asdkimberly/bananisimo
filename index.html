@@ -439,7 +439,9 @@ function navMonth(delta){dashboardMonthOffset+=delta;if(dashboardMonthOffset>0)d
 
 
 function renderOrders(){
-  const filtered=currentFilter==='all'?allOrders:allOrders.filter(o=>o.status===currentFilter);
+  const ORDER={'pendiente':0,'confirmado':1,'entregado':2,'cancelado':3};
+  const base=currentFilter==='all'?allOrders:allOrders.filter(o=>o.status===currentFilter);
+  const filtered=[...base].sort((a,b)=>(ORDER[a.status]??9)-(ORDER[b.status]??9));
   const el=document.getElementById('screen-orders');
   el.innerHTML=`
     <div class="filter-row">${['all','pendiente','confirmado','entregado','cancelado'].map(f=>`<button class="filter-chip ${currentFilter===f?'active':''}" onclick="setFilter('${f}')">${f==='all'?'Todos':f.charAt(0).toUpperCase()+f.slice(1)}</button>`).join('')}</div>
