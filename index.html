@@ -883,7 +883,8 @@ function openWhatsApp(){
   const cycle=CYCLES.find(c=>c.id===o.cycle_id);
   const clean=o.client_phone.replace(/\D/g,'');
   const firstName=o.client_name.trim().split(' ')[0];
-  const msg=encodeURIComponent(`Hola ${firstName} 🍌 Tu pedido de Bananísimo:\n📦 ${prod?.name||''} × ${o.qty}\n💰 Total: ${formatPrice(o.qty*o.price)}\n📅 Entrega: ${cycle?cycle.entrega:'coordinamos'}\nCompartinos tu ubicación 📍 ¡Gracias! 🤎`);
+  const notaLinea=o.notes?`\n📝 ${o.notes}`:'';
+  const msg=encodeURIComponent(`Hola ${firstName}, Confirmamos la entrega de tu pedido de Bananísimo 🍌:\n📦 ${prod?.name||''} × ${o.qty}\n💰 Total: ${formatPrice(o.qty*o.price)}\n📅 Entrega: ${cycle?cycle.entrega:'coordinamos'}${notaLinea}\nCompartinos tu ubicación para recibir tu orden📍 ¡Que estés muy bien! 🤎`);
   window.open(`https://wa.me/506${clean}?text=${msg}`,'_blank');
 }
 
