@@ -350,7 +350,10 @@ function showScreen(name,btn){
   currentScreen=name;renderScreen(name);
 }
 function renderScreen(name){const map={dashboard:renderDashboard,orders:renderOrders,new:renderNew,stock:renderStock,config:renderConfig};if(map[name])map[name]();}
-function rerenderCurrent(){renderScreen(currentScreen);}
+function rerenderCurrent(){
+  // Pequeño delay para asegurar que el modal cerró antes de re-renderizar
+  setTimeout(()=>renderScreen(currentScreen),50);
+}
 
 function renderDashboard(){
   const el=document.getElementById('screen-dashboard');
@@ -444,7 +447,7 @@ function renderOrders(){
   const filtered=[...base].sort((a,b)=>(ORDER[a.status]??9)-(ORDER[b.status]??9));
   const el=document.getElementById('screen-orders');
   el.innerHTML=`
-    <div class="filter-row">${['all','pendiente','confirmado','entregado','cancelado'].map(f=>`<button class="filter-chip ${currentFilter===f?'active':''}" onclick="setFilter('${f}')">${f==='all'?'Todos':f.charAt(0).toUpperCase()+f.slice(1)}</button>`).join('')}</div>
+    <div class="filter-row">${['pendiente','confirmado','entregado','cancelado','all'].map(f=>`<button class="filter-chip ${currentFilter===f?'active':''}" onclick="setFilter('${f}')">${f==='all'?'Todos':f.charAt(0).toUpperCase()+f.slice(1)}</button>`).join('')}</div>
     ${filtered.length===0?`<div class="empty-state"><div class="e-icon">📋</div><div class="e-title">Sin pedidos</div></div>`:filtered.map(o=>orderCardHTML(o)).join('')}
   `;
   attachOrderCards(el);
@@ -516,6 +519,8 @@ async function saveOrder(){
     const weekKey=getWeekKey(new Date(orderDate+'T12:00:00'));
     const{error}=await sb.from('orders').insert({client_name:name,client_phone:phone||null,product_id:productId,qty:newQty,price:prod.price,cycle_id:cycleId,notes:notes||null,status:'pendiente',week_key:weekKey,order_date:orderDate});
     if(error)throw error;
+    const{data:newOrder}=await sb.from('orders').select('*').eq('client_name',name).order('created_at',{ascending:false}).limit(1).single();
+    if(newOrder)allOrders.unshift(newOrder);
     showToast('✓ Pedido guardado');newQty=1;showScreen('dashboard',document.getElementById('nav-dashboard'));
   }catch(e){showError('Error: '+e.message);btn.disabled=false;btn.innerHTML='Guardar pedido';}
 }
@@ -576,18 +581,18 @@ async function registrarPago(){
   try{
     const{error}=await sb.from('payments').insert({order_id:currentOrderId,amount,method:paymentMethod});
     if(error)throw error;
-    allPayments.unshift({id:crypto.randomUUID(),order_id:currentOrderId,amount,method:paymentMethod,payment_date:new Date().toISOString().slice(0,10),created_at:new Date().toISOString()});closeModal();rerenderCurrent();showToast('✓ Pago registrado');
+    allPayments.unshift({id:crypto.randomUUID(),order_id:currentOrderId,amount,method:paymentMethod,payment_date:new Date().toISOString().slice(0,10),created_at:new Date().toISOString()});closeModal();showToast('✓ Pago registrado');rerenderCurrent();
   }catch(e){showError('Error: '+e.message);btn.disabled=false;btn.textContent='✓ Registrar pago';}
 }
 async function updateOrderStatus(newStatus){
   const btn=document.getElementById(newStatus==='confirmado'?'btnConfirmar':'btnEntregar');
   if(btn){btn.disabled=true;btn.textContent='Actualizando...';}
-  try{const{error}=await sb.from('orders').update({status:newStatus}).eq('id',currentOrderId);if(error)throw error;const oi=allOrders.findIndex(x=>x.id===currentOrderId);if(oi>=0)allOrders[oi]={...allOrders[oi],status:newStatus};closeModal();rerenderCurrent();showToast(newStatus==='confirmado'?'✓ Pedido confirmado':'📦 Entrega registrada');}
+  try{const{error}=await sb.from('orders').update({status:newStatus}).eq('id',currentOrderId);if(error)throw error;const oi=allOrders.findIndex(x=>x.id===currentOrderId);if(oi>=0)allOrders[oi]={...allOrders[oi],status:newStatus};closeModal();showToast(newStatus==='confirmado'?'✓ Pedido confirmado':'📦 Entrega registrada');rerenderCurrent();}
   catch(e){showError('Error: '+e.message);if(btn)btn.disabled=false;}
 }
 async function cancelarPedido(){
   if(!confirm('¿Cancelar este pedido?'))return;
-  try{const{error}=await sb.from('orders').update({status:'cancelado'}).eq('id',currentOrderId);if(error)throw error;const oi=allOrders.findIndex(x=>x.id===currentOrderId);if(oi>=0)allOrders[oi]={...allOrders[oi],status:'cancelado'};closeModal();rerenderCurrent();showToast('Pedido cancelado');}
+  try{const{error}=await sb.from('orders').update({status:'cancelado'}).eq('id',currentOrderId);if(error)throw error;const oi=allOrders.findIndex(x=>x.id===currentOrderId);if(oi>=0)allOrders[oi]={...allOrders[oi],status:'cancelado'};closeModal();showToast('Pedido cancelado');rerenderCurrent();}
   catch(e){showError('Error: '+e.message);}
 }
 async function eliminarPedido(){
@@ -604,9 +609,7 @@ async function eliminarPedido(){
     // 3. Actualizar estado local sin esperar realtime
     allOrders=allOrders.filter(x=>x.id!==currentOrderId);
     allPayments=allPayments.filter(x=>x.order_id!==currentOrderId);
-    closeModal();
-    showToast('🗑 Pedido eliminado');
-    rerenderCurrent();
+    closeModal();showToast('🗑 Pedido eliminado');rerenderCurrent();
   }catch(e){
     console.error('eliminarPedido error:',e);
     showError('Error al eliminar: '+( e.message||e.details||JSON.stringify(e)));
@@ -713,9 +716,7 @@ async function saveOrderEdit(){
     const oi=allOrders.findIndex(x=>x.id===currentOrderId);
     if(oi>=0)allOrders[oi]={...allOrders[oi],order_date:newDate,cycle_id:newCycle,notes:newNotes||null,week_key:newWeekKey};
 
-    showToast('✓ Pedido actualizado');
-    openOrderModal(currentOrderId);
-    rerenderCurrent();
+    showToast('✓ Pedido actualizado');openOrderModal(currentOrderId);rerenderCurrent();
   }catch(e){
     showError('Error: '+e.message);
     btn.disabled=false;btn.textContent='Guardar cambios';
@@ -797,7 +798,7 @@ async function saveIngMovement(){
     const{error:e1}=await sb.from('ingredients').update({stock:newStock}).eq('id',currentIngId);
     if(e1)throw e1;
     await sb.from('stock_movements').insert({ingredient_id:currentIngId,type:ingMoveType,qty:ingMoveType==='uso'?-qty:qty});
-    showToast('✓ Stock actualizado');closeModal();updateStockBadge();rerenderCurrent();
+    closeModal();updateStockBadge();showToast('✓ Stock actualizado');rerenderCurrent();
   }catch(e){showError('Error: '+e.message);}
 }
 
