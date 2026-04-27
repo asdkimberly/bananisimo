@@ -576,18 +576,18 @@ async function registrarPago(){
   try{
     const{error}=await sb.from('payments').insert({order_id:currentOrderId,amount,method:paymentMethod});
     if(error)throw error;
-    showToast('✓ Pago registrado');closeModal();openOrderModal(currentOrderId);
+    allPayments.unshift({id:crypto.randomUUID(),order_id:currentOrderId,amount,method:paymentMethod,payment_date:new Date().toISOString().slice(0,10),created_at:new Date().toISOString()});closeModal();rerenderCurrent();showToast('✓ Pago registrado');
   }catch(e){showError('Error: '+e.message);btn.disabled=false;btn.textContent='✓ Registrar pago';}
 }
 async function updateOrderStatus(newStatus){
   const btn=document.getElementById(newStatus==='confirmado'?'btnConfirmar':'btnEntregar');
   if(btn){btn.disabled=true;btn.textContent='Actualizando...';}
-  try{const{error}=await sb.from('orders').update({status:newStatus}).eq('id',currentOrderId);if(error)throw error;closeModal();showToast(newStatus==='confirmado'?'✓ Pedido confirmado':'📦 Entrega registrada');}
+  try{const{error}=await sb.from('orders').update({status:newStatus}).eq('id',currentOrderId);if(error)throw error;const oi=allOrders.findIndex(x=>x.id===currentOrderId);if(oi>=0)allOrders[oi]={...allOrders[oi],status:newStatus};closeModal();rerenderCurrent();showToast(newStatus==='confirmado'?'✓ Pedido confirmado':'📦 Entrega registrada');}
   catch(e){showError('Error: '+e.message);if(btn)btn.disabled=false;}
 }
 async function cancelarPedido(){
   if(!confirm('¿Cancelar este pedido?'))return;
-  try{const{error}=await sb.from('orders').update({status:'cancelado'}).eq('id',currentOrderId);if(error)throw error;closeModal();showToast('Pedido cancelado');}
+  try{const{error}=await sb.from('orders').update({status:'cancelado'}).eq('id',currentOrderId);if(error)throw error;const oi=allOrders.findIndex(x=>x.id===currentOrderId);if(oi>=0)allOrders[oi]={...allOrders[oi],status:'cancelado'};closeModal();rerenderCurrent();showToast('Pedido cancelado');}
   catch(e){showError('Error: '+e.message);}
 }
 async function eliminarPedido(){
@@ -797,7 +797,7 @@ async function saveIngMovement(){
     const{error:e1}=await sb.from('ingredients').update({stock:newStock}).eq('id',currentIngId);
     if(e1)throw e1;
     await sb.from('stock_movements').insert({ingredient_id:currentIngId,type:ingMoveType,qty:ingMoveType==='uso'?-qty:qty});
-    showToast('✓ Stock actualizado');closeModal();updateStockBadge();
+    showToast('✓ Stock actualizado');closeModal();updateStockBadge();rerenderCurrent();
   }catch(e){showError('Error: '+e.message);}
 }
 
