@@ -524,7 +524,7 @@ function openOrderModal(orderId){
   const prod=products.find(p=>p.id===o.product_id);
   const cycle=CYCLES.find(c=>c.id===o.cycle_id);
   const total=o.qty*o.price,paid=orderPaidAmount(orderId),pendPago=total-paid;
-  const dateStr=new Date(o.created_at).toLocaleDateString('es-CR',{day:'numeric',month:'short',year:'numeric'});
+  const dateStr=new Date((o.order_date||o.created_at.slice(0,10))+'T12:00:00').toLocaleDateString('es-CR',{day:'numeric',month:'short',year:'numeric'});
   const pagos=orderPayments(orderId);
   document.getElementById('modalContent').innerHTML=`
     <p class="modal-title">${o.client_name}</p>
