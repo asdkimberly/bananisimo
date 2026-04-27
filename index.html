@@ -262,14 +262,19 @@ select.form-input{cursor:pointer;}
   </div>
   <div class="error-banner" id="errorBanner" style="margin:0 16px 0;"></div>
 
-  <div class="screen active" id="screen-orders"></div>
+  <div class="screen active" id="screen-dashboard"></div>
+  <div class="screen" id="screen-orders"></div>
   <div class="screen" id="screen-new"></div>
   <div class="screen" id="screen-stock"></div>
   <div class="screen" id="screen-finance"></div>
   <div class="screen" id="screen-config"></div>
 
   <nav class="bottom-nav">
-    <button class="nav-btn active" onclick="showScreen('orders',this)" id="nav-orders">
+    <button class="nav-btn active" onclick="showScreen('dashboard',this)" id="nav-dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Inicio
+    </button>
+    <button class="nav-btn" onclick="showScreen('orders',this)" id="nav-orders">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
       Pedidos
     </button>
@@ -315,7 +320,7 @@ const STAGE_COLOR={
 // ── ESTADO ────────────────────────────────────────────────────
 let sb=null, products=[], allOrders=[], ingredients=[], allPayments=[], productMaterials=[];
 let currentFilter='recibido', newQty=1, currentOrderId=null, currentIngId=null;
-let currentScreen='orders', paymentMethod='sinpe', ingMoveType='compra';
+let currentScreen='dashboard', paymentMethod='sinpe', ingMoveType='compra';
 let dashboardView='week', dashboardWeekOffset=0, dashboardMonthOffset=0, customFrom='', customTo='';
 let financeView='week', finWeekOffset=0, finMonthOffset=0, finCustomFrom='', finCustomTo='';
 let stockTab='ingrediente'; // 'ingrediente' | 'material'
@@ -347,7 +352,7 @@ async function initApp(){
     ingredients=r3.data||[];allPayments=r4.data||[];
     productMaterials=r5.data||[];
     hideEl('loadingOverlay');showEl('mainApp');
-    updateCyclePill();updateStockBadge();renderOrders();
+    updateCyclePill();updateStockBadge();renderDashboard();
     // Realtime
     sb.channel('rt')
       .on('postgres_changes',{event:'*',schema:'public',table:'orders'},p=>{
@@ -404,7 +409,7 @@ function showScreen(name,btn){
   (btn||document.getElementById('nav-'+name)).classList.add('active');
   currentScreen=name;renderScreen(name);
 }
-function renderScreen(name){const map={orders:renderOrders,new:renderNew,stock:renderStock,finance:renderFinance,config:renderConfig};if(map[name])map[name]();}
+function renderScreen(name){const map={dashboard:renderDashboard,orders:renderOrders,new:renderNew,stock:renderStock,finance:renderFinance,config:renderConfig};if(map[name])map[name]();}
 function rerenderCurrent(){setTimeout(()=>renderScreen(currentScreen),50);}
 
 // ── HELPERS FINANZAS ──────────────────────────────────────────
@@ -427,6 +432,117 @@ function getFinanceLabel(){
   if(financeView==='month'){return getMonthRange(finMonthOffset).label;}
   return finCustomFrom&&finCustomTo?finCustomFrom+' → '+finCustomTo:'Seleccioná rango';
 }
+
+// ── DASHBOARD SCREEN ──────────────────────────────────────────
+function renderDashboard(){
+  const el=document.getElementById('screen-dashboard');
+  // calcular órdenes según vista
+  let viewOrders, viewLabel, canNext=false;
+  if(dashboardView==='week'){
+    const wk=getOffsetWeekKey(dashboardWeekOffset);
+    viewOrders=weekOrders(wk);
+    viewLabel=dashboardWeekOffset===0?'Esta semana':dashboardWeekOffset===-1?'Semana pasada':'Hace '+Math.abs(dashboardWeekOffset)+' semanas';
+    canNext=dashboardWeekOffset<0;
+  } else if(dashboardView==='month'){
+    const{from,to,label}=getMonthRange(dashboardMonthOffset);
+    viewOrders=ordersInRange(from,to);
+    viewLabel=label;
+    canNext=dashboardMonthOffset<0;
+  } else {
+    viewOrders=(customFrom&&customTo)?ordersInRange(customFrom,customTo):[];
+    viewLabel=customFrom&&customTo?customFrom+' → '+customTo:'Seleccioná rango';
+  }
+
+  const active=activeOrders(viewOrders);
+  const totalPanes=active.reduce((s,o)=>s+o.qty,0);
+  const pct=Math.min(100,Math.round((totalPanes/MAX_SEMANA)*100));
+  const slots=Array.from({length:MAX_SEMANA},(_,i)=>i<totalPanes);
+  const ingresos=viewOrders.filter(o=>o.stage==='entregado').reduce((s,o)=>s+o.qty*o.price,0);
+  const porCobrar=active.reduce((s,o)=>s+Math.max(0,o.qty*o.price-orderPaidAmount(o.id)),0);
+  const alertas=ingredients.filter(i=>ingStatus(i)!=='ok');
+  const isNow=dashboardView==='week'&&dashboardWeekOffset===0;
+
+  // contar por stage
+  const stageCounts={};
+  STAGES.forEach(s=>stageCounts[s]=active.filter(o=>(o.stage||'recibido')===s).length);
+
+  const navBtnStyle='background:rgba(255,255,255,0.14);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer;';
+  const navBtnOff='opacity:0.25;background:transparent;border:0.5px solid rgba(255,255,255,0.1);color:var(--crema);border-radius:8px;width:34px;height:34px;font-size:16px;cursor:default;';
+
+  const customFields=dashboardView==='custom'?`
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <input type="date" id="dash_from" value="${customFrom}" onchange="customFrom=this.value;renderDashboard()"
+        style="flex:1;background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;padding:6px 10px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:600;outline:none;">
+      <span style="color:var(--banano);line-height:32px;">→</span>
+      <input type="date" id="dash_to" value="${customTo}" onchange="customTo=this.value;renderDashboard()"
+        style="flex:1;background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;padding:6px 10px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:600;outline:none;">
+    </div>`:'';
+
+  el.innerHTML=`
+    <div class="week-header">
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        ${['week','month','custom'].map(v=>`<button onclick="dashboardView='${v}';dashboardWeekOffset=0;dashboardMonthOffset=0;renderDashboard()"
+          style="flex:1;padding:5px 4px;border-radius:8px;border:0.5px solid rgba(255,255,255,${dashboardView===v?'0.5':'0.2'});background:${dashboardView===v?'rgba(239,159,39,0.25)':'transparent'};color:${dashboardView===v?'var(--banano)':'rgba(250,238,218,0.6)'};font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase;">
+          ${v==='week'?'Semana':v==='month'?'Mes':'Rango'}
+        </button>`).join('')}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <p class="wh-title">${viewLabel}</p>
+        ${dashboardView!=='custom'?`<div style="display:flex;gap:6px;">
+          <button onclick="${dashboardView==='week'?'navWeek(-1)':'navMonth(-1)'}" style="${navBtnStyle}">←</button>
+          <button onclick="${dashboardView==='week'?'navWeek(1)':'navMonth(1)'}" ${!canNext?'disabled':''} style="${canNext?navBtnStyle:navBtnOff}">→</button>
+        </div>`:''}
+      </div>
+      ${customFields}
+    </div>
+
+    ${isNow&&alertas.length>0?`<div class="alert-banner" onclick="showScreen('stock',document.getElementById('nav-stock'))">
+      <div class="alert-banner-title">⚠️ ${alertas.length} item${alertas.length>1?'s':''} requiere${alertas.length>1?'n':''} atención</div>
+      <div class="alert-banner-text">${alertas.slice(0,3).map(i=>i.name).join(' · ')}${alertas.length>3?' · +más':''}</div>
+    </div>`:''}
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-val">${totalPanes}<span style="font-size:13px;color:var(--text-muted);">/${dashboardView==='week'?MAX_SEMANA:'∞'}</span></div><div class="stat-label">Panes</div><div class="stat-sub">${active.length} pedidos</div></div>
+      <div class="stat-card"><div class="stat-val">${viewOrders.filter(o=>o.stage==='entregado').length}</div><div class="stat-label">Entregados</div><div class="stat-sub">${viewOrders.filter(o=>o.stage==='cancelado').length} cancelados</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:19px;color:var(--hoja);">${formatPrice(ingresos)}</div><div class="stat-label">Cobrado</div><div class="stat-sub">Entregados</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:19px;color:var(--rojo);">${formatPrice(porCobrar)}</div><div class="stat-label">Por cobrar</div><div class="stat-sub">Pendiente</div></div>
+    </div>
+
+    ${dashboardView==='week'?`<div class="capacity-bar-wrap">
+      <div class="cap-row"><p class="cap-label">Capacidad semanal</p><p class="cap-count">${totalPanes}<span>/${MAX_SEMANA} panes</span></p></div>
+      <div class="bar-track"><div class="bar-fill ${totalPanes>=MAX_SEMANA?'warn':''}" style="width:${pct}%"></div></div>
+      <div class="bar-slots">${slots.map(u=>`<div class="slot ${u?(totalPanes>=MAX_SEMANA?'used warn':'used'):''}"></div>`).join('')}</div>
+    </div>`:''}
+
+    <span class="sec-label">Pipeline de órdenes</span>
+    <div class="card" style="padding:12px 14px;">
+      ${STAGES.map(s=>{
+        const sc=STAGE_COLOR[s];
+        const count=stageCounts[s]||0;
+        const pctStage=active.length>0?Math.round(count/active.length*100):0;
+        return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:${s===STAGES[STAGES.length-1]?0:10}px;">
+          <span style="font-size:14px;width:20px;text-align:center;">${STAGE_ICON[s]}</span>
+          <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+              <span style="font-size:12px;font-weight:700;color:var(--cacao);">${STAGE_LABEL[s]}</span>
+              <span style="font-size:12px;font-weight:700;color:${sc.color};">${count}</span>
+            </div>
+            <div style="background:#F1EFE8;border-radius:20px;height:5px;overflow:hidden;">
+              <div style="width:${pctStage}%;height:100%;border-radius:20px;background:${sc.color};transition:width 0.4s;"></div>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <span class="sec-label" style="margin-top:14px;">${isNow?'Pedidos activos':'Pedidos del período'}</span>
+    ${active.filter(o=>isNow?['recibido','horneado','enfriado','empacado'].includes(o.stage||'recibido'):true).length===0
+      ?`<div class="empty-state"><div class="e-icon">📋</div><div class="e-title">Sin pedidos</div><div class="e-text">${isNow?'Usá el botón + para agregar.':'No hay pedidos en este período.'}</div></div>`
+      :active.filter(o=>isNow?['recibido','horneado','enfriado','empacado'].includes(o.stage||'recibido'):true).map(o=>orderCardHTML(o)).join('')}
+  `;
+  el.querySelectorAll('.order-card').forEach(card=>card.addEventListener('click',()=>openOrderModal(card.dataset.id)));
+}
+
 
 // ── ORDERS SCREEN ─────────────────────────────────────────────
 function renderOrders(){
