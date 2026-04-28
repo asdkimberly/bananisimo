@@ -742,7 +742,14 @@ async function saveOrder(){
       showToast('✓ Pedido guardado');
     }
     newQty=1;
+    // Navegar al dashboard mostrando la semana del pedido recién creado
+    const newOrderWeek=getWeekKey(new Date(orderDate+'T12:00:00'));
+    const thisWeek=getWeekKey();
+    const diffMs=new Date(thisWeek)-new Date(newOrderWeek);
+    dashboardWeekOffset=-Math.round(diffMs/(7*24*60*60*1000));
+    dashboardView='week';
     showScreen('dashboard',document.getElementById('nav-dashboard'));
+    renderDashboard(); // forzar re-render inmediato con datos actualizados
   }catch(e){showError('Error: '+e.message);btn.disabled=false;btn.innerHTML='Guardar pedido';}
 }
 
