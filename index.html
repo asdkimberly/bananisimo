@@ -380,8 +380,26 @@ async function initApp(){
 // ── HELPERS ───────────────────────────────────────────────────
 function showEl(id){const el=document.getElementById(id);if(el){el.style.display='block';el.classList.remove('hidden');}}
 function hideEl(id){const el=document.getElementById(id);if(el){el.classList.add('hidden');setTimeout(()=>{if(el.classList.contains('hidden'))el.style.display='none';},350);}}
-function getWeekKey(d=new Date()){const x=new Date(d);const day=x.getDay();x.setDate(x.getDate()-day+(day===0?-6:1));return x.toISOString().slice(0,10);}
-function getOffsetWeekKey(offset){const d=new Date();d.setDate(d.getDate()+offset*7);return getWeekKey(d);}
+function getWeekKey(d){
+  // Convertir a fecha local evitando desfase UTC
+  let x;
+  if(!d){x=new Date();}
+  else if(typeof d==='string'){x=new Date(d.length===10?d+'T12:00:00':d);}
+  else{x=new Date(d);}
+  // Usar fecha local
+  const localY=x.getFullYear(),localM=x.getMonth(),localD=x.getDate();
+  const tmp=new Date(localY,localM,localD);
+  const day=tmp.getDay();
+  const diff=day===0?-6:1-day;
+  tmp.setDate(tmp.getDate()+diff);
+  return tmp.getFullYear()+'-'+String(tmp.getMonth()+1).padStart(2,'0')+'-'+String(tmp.getDate()).padStart(2,'0');
+}
+function getOffsetWeekKey(offset){
+  const d=new Date();
+  d.setDate(d.getDate()+offset*7);
+  const y=d.getFullYear(),m=d.getMonth(),day=d.getDate();
+  return getWeekKey(y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0'));
+}
 function getMonthRange(offset){
   const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+offset);
   const y=d.getFullYear(),m=d.getMonth();
@@ -390,16 +408,14 @@ function getMonthRange(offset){
 }
 function ordersInRange(from,to){
   return allOrders.filter(o=>{
-    const d=o.order_date||o.week_key||o.created_at.slice(0,10);
+    const d=(o.order_date||o.week_key||o.created_at).slice(0,10);
     return d>=from&&d<=to;
   });
 }
 function weekOrders(wk){
   return allOrders.filter(o=>{
-    // Prioridad: order_date > week_key > created_at
-    if(o.order_date) return getWeekKey(new Date(o.order_date+'T12:00:00'))===wk;
-    if(o.week_key)   return o.week_key===wk;
-    return getWeekKey(new Date(o.created_at))===wk;
+    const d=o.order_date||o.week_key||o.created_at.slice(0,10);
+    return getWeekKey(d.slice(0,10))===wk;
   });
 }
 function activeOrders(orders){return orders.filter(o=>o.stage!=='cancelado');}
@@ -465,15 +481,6 @@ function renderDashboard(){
     viewLabel=customFrom&&customTo?customFrom+' → '+customTo:'Seleccioná rango';
   }
 
-  // DEBUG — quitar después de confirmar fix
-  console.log('Dashboard view:', dashboardView, 'offset:', dashboardWeekOffset);
-  console.log('Buscando semana:', dashboardView==='week'?getOffsetWeekKey(dashboardWeekOffset):'rango');
-  console.log('Total allOrders:', allOrders.length);
-  console.log('ViewOrders encontrados:', viewOrders.length);
-  if(allOrders.length>0){
-    const sample=allOrders[0];
-    console.log('Primer pedido — order_date:', sample.order_date, '| week_key:', sample.week_key, '| created_at:', sample.created_at?.slice(0,10));
-  }
   const active=activeOrders(viewOrders);
   const totalPanes=active.reduce((s,o)=>s+o.qty,0);
   const pct=Math.min(100,Math.round((totalPanes/MAX_SEMANA)*100));
