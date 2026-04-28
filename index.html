@@ -388,8 +388,20 @@ function getMonthRange(offset){
   const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   return{from:new Date(y,m,1).toISOString().slice(0,10),to:new Date(y,m+1,0).toISOString().slice(0,10),label:months[m]+' '+y};
 }
-function ordersInRange(from,to){return allOrders.filter(o=>{const d=o.order_date||o.created_at.slice(0,10);return d>=from&&d<=to;});}
-function weekOrders(wk){return allOrders.filter(o=>{if(o.order_date)return getWeekKey(new Date(o.order_date+'T12:00:00'))===wk;return o.week_key===wk;});}
+function ordersInRange(from,to){
+  return allOrders.filter(o=>{
+    const d=o.order_date||o.week_key||o.created_at.slice(0,10);
+    return d>=from&&d<=to;
+  });
+}
+function weekOrders(wk){
+  return allOrders.filter(o=>{
+    // Prioridad: order_date > week_key > created_at
+    if(o.order_date) return getWeekKey(new Date(o.order_date+'T12:00:00'))===wk;
+    if(o.week_key)   return o.week_key===wk;
+    return getWeekKey(new Date(o.created_at))===wk;
+  });
+}
 function activeOrders(orders){return orders.filter(o=>o.stage!=='cancelado');}
 function orderPayments(id){return allPayments.filter(p=>p.order_id===id);}
 function orderPaidAmount(id){return orderPayments(id).reduce((s,p)=>s+p.amount,0);}
@@ -453,6 +465,15 @@ function renderDashboard(){
     viewLabel=customFrom&&customTo?customFrom+' → '+customTo:'Seleccioná rango';
   }
 
+  // DEBUG — quitar después de confirmar fix
+  console.log('Dashboard view:', dashboardView, 'offset:', dashboardWeekOffset);
+  console.log('Buscando semana:', dashboardView==='week'?getOffsetWeekKey(dashboardWeekOffset):'rango');
+  console.log('Total allOrders:', allOrders.length);
+  console.log('ViewOrders encontrados:', viewOrders.length);
+  if(allOrders.length>0){
+    const sample=allOrders[0];
+    console.log('Primer pedido — order_date:', sample.order_date, '| week_key:', sample.week_key, '| created_at:', sample.created_at?.slice(0,10));
+  }
   const active=activeOrders(viewOrders);
   const totalPanes=active.reduce((s,o)=>s+o.qty,0);
   const pct=Math.min(100,Math.round((totalPanes/MAX_SEMANA)*100));
@@ -536,7 +557,7 @@ function renderDashboard(){
     </div>
 
     <span class="sec-label" style="margin-top:14px;">${isNow?'Pedidos activos':'Pedidos del período'}</span>
-    ${active.filter(o=>isNow?['recibido','horneado','enfriado','empacado'].includes(o.stage||'recibido'):true).length===0
+    ${active.filter(o=>isNow?o.stage!=='entregado':true).length===0
       ?`<div class="empty-state"><div class="e-icon">📋</div><div class="e-title">Sin pedidos</div><div class="e-text">${isNow?'Usá el botón + para agregar.':'No hay pedidos en este período.'}</div></div>`
       :active.filter(o=>isNow?['recibido','horneado','enfriado','empacado'].includes(o.stage||'recibido'):true).map(o=>orderCardHTML(o)).join('')}
   `;
