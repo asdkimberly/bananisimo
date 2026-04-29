@@ -191,7 +191,7 @@ select.form-input{cursor:pointer;}
 
 <script>
 // ── ESTADO ────────────────────────────────────────────────────
-let sb=null, orders=[], ciclos=[], gastos=[], cfg={}, panesAcum=0;
+let sb=null, orders=[], ciclos=[], gastos=[], cfg={}, panesAcum=0, payments=[];
 let currentScreen='resumen', currentCicloId=null;
 let resumenView='semana', resumenOffset=0;
 
@@ -210,17 +210,19 @@ async function initApp(){
   if(!url||!key){document.getElementById('loadingOverlay').classList.add('hidden');document.getElementById('configScreen').style.display='block';return;}
   try{
     sb=supabase.createClient(url,key);
-    const[r1,r2,r3,r4,r5]=await Promise.all([
+    const[r1,r2,r3,r4,r5,r6]=await Promise.all([
       sb.from('orders').select('id,product_id,qty,price,stage,order_date,week_key,created_at').order('created_at',{ascending:false}).limit(500),
       sb.from('ciclos').select('*').order('fecha',{ascending:false}),
       sb.from('gastos').select('*').order('fecha',{ascending:false}),
       sb.from('config_finanzas').select('*'),
       sb.from('panes_acumulados').select('total').eq('id',1).single(),
+      sb.from('payments').select('order_id,amount,payment_date,created_at'),
     ]);
     if(r1.error)throw r1.error;
     orders=r1.data||[];ciclos=r2.data||[];gastos=r3.data||[];
     cfg={};(r4.data||[]).forEach(c=>cfg[c.clave]=c.valor);
     panesAcum=(r5.data?.total)||0;
+    payments=r6.data||[];
     document.getElementById('loadingOverlay').classList.add('hidden');
     document.getElementById('mainApp').style.display='block';
     updateAmortBadge();renderResumen();
@@ -491,6 +493,9 @@ function renderResumen(){
 // ── CICLOS — calculados desde orders ──────────────────────────
 
 // Detectar si un product_id corresponde a semillas
+function paidForOrder(orderId){
+  return payments.filter(p=>p.order_id===orderId).reduce((s,p)=>s+p.amount,0);
+}
 function isSemi(productId){
   if(!productId)return false;
   const p=productId.toLowerCase();
@@ -524,7 +529,7 @@ function buildCiclosFromOrders(){
     c.ingresos+=qty*o.price;
     c.costos+=costoPan(o.product_id)*qty;
     // Calcular cobrado desde allPayments no disponible aquí — usar campo paid_amount si existe
-    const paid=o.paid_amount||0;
+    const paid=paidForOrder(o.id);
     c.cobrado+=paid;
     c.porCobrar+=Math.max(0,qty*o.price-paid);
   });
@@ -603,7 +608,7 @@ function openCicloModalByKey(key){
     <div style="margin-top:14px;"><p style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Pedidos del ciclo</p>
       ${c.orders.map(o=>{
         const prod=o.product_id;const isSemiO=isSemi(prod);
-        const total=o.qty*o.price;const paid=o.paid_amount||0;
+        const total=o.qty*o.price;const paid=paidForOrder(o.id);
         return`<div class="fin-row">
           <div>
             <div style="font-size:13px;font-weight:700;color:var(--cacao);">${o.client_name||'—'}</div>
