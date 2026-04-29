@@ -467,21 +467,20 @@ function renderResumen(){
     </div>
 
     <span class="sec-label">Últimos ciclos</span>
-    ${ciclos.slice(0,5).map(c=>{
-      const gan=((c.panes_trad||0)*(cfg.precio_trad||3500)+(c.panes_semi||0)*(cfg.precio_semi||3750))
-               -((c.panes_trad||0)*costoPan('trad')+(c.panes_semi||0)*costoPan('semi'));
-      const gastCiclo=gastos.filter(g=>g.ciclo_id===c.id).reduce((s,g)=>s+g.precio_total,0);
-      const ganReal=gan-gastCiclo;
-      return`<div class="ciclo-card ${c.estado}" onclick="showScreen('ciclos');setTimeout(()=>openCicloModal('${c.id}'),100);">
+    ${buildCiclosFromOrders().slice(0,5).map(c=>{
+      const gan=c.ingresos-c.costos;
+      const gastCiclo=c.dbCiclo?gastos.filter(g=>g.ciclo_id===c.dbCiclo.id).reduce((s,g)=>s+g.precio_total,0):0;
+      const ganNeta=gan-gastCiclo;
+      const estado=c.dbCiclo?.estado||'abierto';
+      return`<div class="ciclo-card ${estado}" onclick="showScreen('ciclos',document.getElementById('nav-ciclos'));setTimeout(()=>openCicloModalByKey('${c.key}'),150);">
         <div class="ciclo-top">
           <div>
-            <div class="ciclo-fecha">${c.fecha}</div>
-            <div class="ciclo-panes">${(c.panes_trad||0)+(c.panes_semi||0)} panes · ${c.panes_trad||0} trad · ${c.panes_semi||0} semi</div>
+            <div class="ciclo-fecha">${c.fecha} <span style="font-size:11px;color:rgba(250,238,218,0.6);">· ${c.orders.length} pedidos</span></div>
+            <div class="ciclo-panes">${c.panesTotal} panes · ${c.panesTrad} trad · ${c.panesSemi} semi</div>
           </div>
           <div style="text-align:right;">
             <div class="ciclo-dia ${c.dia}">${c.dia}</div>
-            <div class="ciclo-ganancia" style="color:${ganReal>=0?'var(--hoja)':'var(--rojo)'};">${fp(ganReal)}</div>
-            ${gastCiclo>0?`<div style="font-size:10px;color:var(--text-muted);">-${fp(gastCiclo)} gastos</div>`:''}
+            <div class="ciclo-ganancia" style="color:${ganNeta>=0?'var(--hoja)':'var(--rojo)'};">${fp(ganNeta)}</div>
           </div>
         </div>
       </div>`;
@@ -489,125 +488,208 @@ function renderResumen(){
   `;
 }
 
-// ── CICLOS ────────────────────────────────────────────────────
+// ── CICLOS — calculados desde orders ──────────────────────────
+
+// Detectar si un product_id corresponde a semillas
+function isSemi(productId){
+  if(!productId)return false;
+  const p=productId.toLowerCase();
+  return p==='semi'||p.includes('semi')||p.includes('semilla');
+}
+
+// Agrupar orders por ciclo (week_key + cycle_id)
+function buildCiclosFromOrders(){
+  const map={};
+  orders.filter(o=>o.stage!=='cancelado').forEach(o=>{
+    const wk=o.week_key||(o.order_date?getWeekKey(o.order_date):getWeekKey(o.created_at));
+    const cycleId=o.cycle_id||'?';
+    const key=wk+'__'+cycleId;
+    if(!map[key]){
+      map[key]={
+        key, wk, cycleId,
+        dia: cycleId==='mar'?'martes':cycleId==='jue'?'jueves':cycleId,
+        fecha: wk,
+        orders:[], panesTotal:0, panesTrad:0, panesSemi:0,
+        ingresos:0, costos:0,
+        cobrado:0, porCobrar:0,
+        // buscar si existe en tabla ciclos para notas/estado
+        dbCiclo: ciclos.find(c=>c.fecha===wk&&(c.dia===(cycleId==='mar'?'martes':'jueves')))||null,
+      };
+    }
+    const c=map[key];
+    c.orders.push(o);
+    const qty=o.qty||0;
+    c.panesTotal+=qty;
+    if(isSemi(o.product_id)){c.panesSemi+=qty;}else{c.panesTrad+=qty;}
+    c.ingresos+=qty*o.price;
+    c.costos+=costoPan(o.product_id)*qty;
+    // Calcular cobrado desde allPayments no disponible aquí — usar campo paid_amount si existe
+    const paid=o.paid_amount||0;
+    c.cobrado+=paid;
+    c.porCobrar+=Math.max(0,qty*o.price-paid);
+  });
+  // Ordenar por fecha desc
+  return Object.values(map).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+}
+
 function renderCiclos(){
   const el=document.getElementById('screen-ciclos');
+  const ciclosCalc=buildCiclosFromOrders();
+
   el.innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <span class="sec-label" style="margin:0;">Ciclos de producción</span>
-      <button onclick="openNuevoCiclo()" style="background:var(--cacao);color:var(--banano);border:none;border-radius:var(--radius-sm);padding:8px 14px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">+ Nuevo</button>
+    <div style="margin-bottom:14px;">
+      <span class="sec-label" style="margin:0 0 4px;">Ciclos de producción</span>
+      <p style="font-size:12px;color:var(--text-muted);line-height:1.5;">Calculados automáticamente desde los pedidos. Se actualizan al cambiar un pedido.</p>
     </div>
-    ${ciclos.length===0?`<div class="empty-state"><div class="e-icon">📅</div><div class="e-title">Sin ciclos registrados</div></div>`
-    :ciclos.map(c=>{
-      const panes=(c.panes_trad||0)+(c.panes_semi||0);
-      const ing=(c.panes_trad||0)*(cfg.precio_trad||3500)+(c.panes_semi||0)*(cfg.precio_semi||3750);
-      const cos=(c.panes_trad||0)*costoPan('trad')+(c.panes_semi||0)*costoPan('semi');
-      const gastosCiclo=gastos.filter(g=>g.ciclo_id===c.id).reduce((s,g)=>s+g.precio_total,0);
-      const gan=ing-cos-gastosCiclo;
-      const gastosCount=gastos.filter(g=>g.ciclo_id===c.id).length;
-      return`<div class="ciclo-card ${c.estado}" data-id="${c.id}">
-        <div class="ciclo-top">
-          <div>
-            <div class="ciclo-fecha">${c.fecha}</div>
-            <div class="ciclo-panes">${panes} panes · ${c.panes_trad||0} trad · ${c.panes_semi||0} semi</div>
-            ${gastosCount>0?`<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${gastosCount} gasto${gastosCount>1?'s':''} registrados</div>`:''}
+    ${ciclosCalc.length===0
+      ?`<div class="empty-state"><div class="e-icon">📅</div><div class="e-title">Sin pedidos registrados</div><div class="e-text">Los ciclos aparecen automáticamente cuando hay pedidos.</div></div>`
+      :ciclosCalc.map(c=>{
+        const gan=c.ingresos-c.costos;
+        const gastCiclo=c.dbCiclo?gastos.filter(g=>g.ciclo_id===c.dbCiclo.id).reduce((s,g)=>s+g.precio_total,0):0;
+        const ganNeta=gan-gastCiclo;
+        const estado=c.dbCiclo?.estado||'abierto';
+        const cobPct=c.ingresos>0?Math.round(c.cobrado/c.ingresos*100):0;
+        return`<div class="ciclo-card ${estado}" data-key="${c.key}">
+          <div class="ciclo-top">
+            <div>
+              <div class="ciclo-fecha">${c.fecha} <span style="font-size:11px;color:var(--text-muted);">· ${c.orders.length} pedido${c.orders.length>1?'s':''}</span></div>
+              <div class="ciclo-panes">${c.panesTotal} panes · ${c.panesTrad} trad · ${c.panesSemi} semi</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+                Cobrado: ${fp(c.cobrado)} (${cobPct}%)
+                ${gastCiclo>0?` · Gastos: ${fp(gastCiclo)}`:''}
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div class="ciclo-dia ${c.dia}">${c.dia}</div>
+              <div class="ciclo-ganancia" style="color:${ganNeta>=0?'var(--hoja)':'var(--rojo)'};">${fp(ganNeta)}</div>
+              <div style="font-size:10px;color:var(--text-muted);">${estado==='abierto'?'🟡 Abierto':'✅ Cerrado'}</div>
+            </div>
           </div>
-          <div style="text-align:right;">
-            <div class="ciclo-dia ${c.dia}">${c.dia}</div>
-            <div class="ciclo-ganancia" style="color:${gan>=0?'var(--hoja)':'var(--rojo)'};">${fp(gan)}</div>
-            <div style="font-size:11px;color:var(--text-muted);">${c.estado==='abierto'?'🟡 Abierto':'✅ Cerrado'}</div>
-          </div>
-        </div>
-        ${c.notas?`<div style="font-size:12px;color:var(--text-muted);border-top:0.5px solid #F1EFE8;padding-top:6px;margin-top:4px;">📝 ${c.notas}</div>`:''}
-      </div>`;
-    }).join('')}
+          ${c.dbCiclo?.notas?`<div style="font-size:12px;color:var(--text-muted);border-top:0.5px solid #F1EFE8;padding-top:6px;margin-top:4px;">📝 ${c.dbCiclo.notas}</div>`:''}
+        </div>`;
+      }).join('')}
   `;
-  el.querySelectorAll('.ciclo-card[data-id]').forEach(card=>card.addEventListener('click',()=>openCicloModal(card.dataset.id)));
+  el.querySelectorAll('.ciclo-card[data-key]').forEach(card=>card.addEventListener('click',()=>openCicloModalByKey(card.dataset.key)));
 }
 
-function openNuevoCiclo(){
-  const today=new Date().toISOString().slice(0,10);
-  const dow=new Date().getDay();
-  const defaultDia=dow===2?'martes':dow===4?'jueves':'martes';
-  openModal(`
-    <p class="modal-title">Nuevo ciclo</p>
-    <div style="margin-bottom:14px;"><label class="form-label">Fecha</label>
-      <input class="form-input" id="nc_fecha" type="date" value="${today}" style="margin-bottom:0;">
-    </div>
-    <div style="margin-bottom:14px;"><label class="form-label">Día</label>
-      <select class="form-input" id="nc_dia" style="margin-bottom:0;">
-        <option value="martes" ${defaultDia==='martes'?'selected':''}>Martes</option>
-        <option value="jueves" ${defaultDia==='jueves'?'selected':''}>Jueves</option>
-      </select>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-      <div><label class="form-label">Panes Trad</label><input class="form-input" id="nc_trad" type="number" min="0" max="8" value="0" style="margin-bottom:0;"></div>
-      <div><label class="form-label">Panes Semi</label><input class="form-input" id="nc_semi" type="number" min="0" max="8" value="0" style="margin-bottom:0;"></div>
-    </div>
-    <div style="margin-bottom:14px;"><label class="form-label">Notas (opcional)</label>
-      <input class="form-input" id="nc_notas" type="text" placeholder="Observaciones..." style="margin-bottom:0;">
-    </div>
-    <div class="modal-actions">
-      <button class="btn-modal primary" onclick="saveCiclo()">Guardar ciclo</button>
-      <button class="btn-close" onclick="closeModal()">Cancelar</button>
-    </div>
-  `);
-}
-
-async function saveCiclo(){
-  const fecha=document.getElementById('nc_fecha').value;
-  const dia=document.getElementById('nc_dia').value;
-  const panes_trad=parseInt(document.getElementById('nc_trad').value)||0;
-  const panes_semi=parseInt(document.getElementById('nc_semi').value)||0;
-  const notas=document.getElementById('nc_notas').value.trim();
-  if(!fecha){showToast('⚠️ Ingresá la fecha');return;}
-  const btn=event.target;btn.disabled=true;btn.textContent='Guardando...';
-  try{
-    const{data,error}=await sb.from('ciclos').insert({fecha,dia,panes_trad,panes_semi,notas:notas||null}).select().single();
-    if(error)throw error;
-    ciclos.unshift(data);
-    // Actualizar panes acumulados
-    const totalNuevos=panes_trad+panes_semi;
-    if(totalNuevos>0){
-      const newTotal=panesAcum+totalNuevos;
-      await sb.from('panes_acumulados').update({total:newTotal}).eq('id',1);
-      panesAcum=newTotal;updateAmortBadge();
-    }
-    closeModal();showToast('✓ Ciclo guardado');renderCiclos();
-  }catch(e){showToast('Error: '+e.message);btn.disabled=false;btn.textContent='Guardar ciclo';}
-}
-
-function openCicloModal(cicloId){
-  currentCicloId=cicloId;
-  const c=ciclos.find(x=>x.id===cicloId);if(!c)return;
-  const panes=(c.panes_trad||0)+(c.panes_semi||0);
-  const ing=(c.panes_trad||0)*(cfg.precio_trad||3500)+(c.panes_semi||0)*(cfg.precio_semi||3750);
-  const cos=(c.panes_trad||0)*costoPan('trad')+(c.panes_semi||0)*costoPan('semi');
-  const gastoCiclo=gastos.filter(g=>g.ciclo_id===cicloId);
+function openCicloModalByKey(key){
+  currentCicloId=key;
+  const ciclosCalc=buildCiclosFromOrders();
+  const c=ciclosCalc.find(x=>x.key===key);if(!c)return;
+  const gan=c.ingresos-c.costos;
+  const dbCiclo=c.dbCiclo;
+  const gastoCiclo=dbCiclo?gastos.filter(g=>g.ciclo_id===dbCiclo.id):[];
   const totalGastos=gastoCiclo.reduce((s,g)=>s+g.precio_total,0);
-  const gan=ing-cos-totalGastos;
+  const ganNeta=gan-totalGastos;
+  const estado=dbCiclo?.estado||'abierto';
+
   openModal(`
     <p class="modal-title">${c.fecha} · ${c.dia}</p>
-    <div style="background:${gan>=0?'#d5f5e3':'#fde8e8'};border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;text-align:center;">
-      <div style="font-size:26px;font-weight:700;color:${gan>=0?'var(--hoja)':'var(--rojo)'};">${fp(gan)}</div>
-      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-top:2px;">Ganancia estimada</div>
+    <div style="background:${ganNeta>=0?'#d5f5e3':'#fde8e8'};border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;text-align:center;">
+      <div style="font-size:26px;font-weight:700;color:${ganNeta>=0?'var(--hoja)':'var(--rojo)'};">${fp(ganNeta)}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-top:2px;">Ganancia neta estimada</div>
     </div>
-    <div class="fin-row"><span class="fin-label">Panes</span><span class="fin-val">${panes} (${c.panes_trad||0} trad · ${c.panes_semi||0} semi)</span></div>
-    <div class="fin-row"><span class="fin-label">Ingresos brutos</span><span class="fin-val gold">${fp(ing)}</span></div>
-    <div class="fin-row"><span class="fin-label">Costos producción</span><span class="fin-val red">-${fp(cos)}</span></div>
-    <div class="fin-row"><span class="fin-label">Gastos adicionales</span><span class="fin-val red">-${fp(totalGastos)}</span></div>
-    <div class="fin-row" style="border-top:1.5px solid var(--border-strong);"><span class="fin-label" style="font-weight:700;color:var(--cacao);">Ganancia neta</span><span class="fin-val" style="color:${gan>=0?'var(--hoja)':'var(--rojo)'};">${fp(gan)}</span></div>
+    <div class="fin-row"><span class="fin-label">Panes</span><span class="fin-val">${c.panesTotal} (${c.panesTrad} trad · ${c.panesSemi} semi)</span></div>
+    <div class="fin-row"><span class="fin-label">Ingresos brutos</span><span class="fin-val gold">+${fp(c.ingresos)}</span></div>
+    <div class="fin-row"><span class="fin-label">Costos estimados</span><span class="fin-val red">-${fp(c.costos)}</span></div>
+    <div class="fin-row"><span class="fin-label">Cobrado</span><span class="fin-val green">+${fp(c.cobrado)}</span></div>
+    <div class="fin-row"><span class="fin-label">Por cobrar</span><span class="fin-val red">${fp(c.porCobrar)}</span></div>
+    ${totalGastos>0?`<div class="fin-row"><span class="fin-label">Gastos registrados</span><span class="fin-val red">-${fp(totalGastos)}</span></div>`:''}
+    <div class="fin-row" style="border-top:1.5px solid var(--border-strong);margin-top:4px;">
+      <span class="fin-label" style="font-weight:700;color:var(--cacao);">Ganancia neta</span>
+      <span class="fin-val" style="font-size:16px;color:${ganNeta>=0?'var(--hoja)':'var(--rojo)'};">${fp(ganNeta)}</span>
+    </div>
+
+    <div style="margin-top:14px;"><p style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Pedidos del ciclo</p>
+      ${c.orders.map(o=>{
+        const prod=o.product_id;const isSemiO=isSemi(prod);
+        const total=o.qty*o.price;const paid=o.paid_amount||0;
+        return`<div class="fin-row">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--cacao);">${o.client_name||'—'}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${isSemiO?'Semillas':'Tradicional'} × ${o.qty} · ${o.stage||'recibido'}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:13px;font-weight:700;color:var(--cacao);">${fp(total)}</div>
+            <div style="font-size:11px;color:${paid>=total?'var(--hoja)':'var(--rojo)'};">${paid>=total?'✓ Pagado':paid>0?fp(paid)+' cobrado':'Sin pago'}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
     ${gastoCiclo.length>0?`<div style="margin-top:14px;"><p style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Gastos de este ciclo</p>
       ${gastoCiclo.map(g=>`<div class="gasto-row"><div><div class="gasto-item">${g.item}</div><span class="gasto-cat ${g.categoria}">${g.categoria}</span></div><div class="gasto-monto">-${fp(g.precio_total)}</div></div>`).join('')}
     </div>`:''}
-    ${c.notas?`<div style="font-size:12px;color:var(--text-muted);margin-top:12px;">📝 ${c.notas}</div>`:''}
+
+    ${dbCiclo?.notas?`<div style="font-size:12px;color:var(--text-muted);margin-top:12px;">📝 ${dbCiclo.notas}</div>`:''}
     <div class="modal-actions">
-      <button class="btn-modal primary" onclick="openNuevoGastoParaCiclo('${cicloId}')">+ Agregar gasto</button>
-      ${c.estado==='abierto'?`<button class="btn-modal" style="background:#d5f5e3;color:#1e8449;" onclick="cerrarCiclo('${cicloId}')">✓ Cerrar ciclo</button>`:''}
-      <button class="btn-modal danger" onclick="eliminarCiclo('${cicloId}')">🗑 Eliminar ciclo</button>
+      <button class="btn-modal primary" onclick="openNuevoGastoParaCiclo(${dbCiclo?`'${dbCiclo.id}'`:'null'})">+ Agregar gasto</button>
+      ${estado==='abierto'?`<button class="btn-modal" style="background:#d5f5e3;color:#1e8449;" onclick="cerrarCicloByKey('${key}')">✓ Cerrar ciclo</button>`:''}
+      <button class="btn-modal" style="background:var(--crema);color:var(--cacao);border:0.5px solid var(--border-strong);" onclick="editarNotasCiclo('${key}')">📝 Agregar nota</button>
       <button class="btn-close" onclick="closeModal()">Cerrar</button>
     </div>
   `);
+}
+
+async function cerrarCicloByKey(key){
+  const ciclosCalc=buildCiclosFromOrders();
+  const c=ciclosCalc.find(x=>x.key===key);if(!c)return;
+  try{
+    if(c.dbCiclo){
+      // Ya existe en tabla ciclos, solo cerrar
+      await sb.from('ciclos').update({estado:'cerrado'}).eq('id',c.dbCiclo.id);
+      const i=ciclos.findIndex(x=>x.id===c.dbCiclo.id);
+      if(i>=0)ciclos[i]={...ciclos[i],estado:'cerrado'};
+    } else {
+      // Crear entrada en tabla ciclos solo para guardar estado
+      const{data,error}=await sb.from('ciclos').insert({
+        fecha:c.fecha,dia:c.dia,estado:'cerrado',
+        panes_trad:c.panesTrad,panes_semi:c.panesSemi
+      }).select().single();
+      if(error)throw error;
+      ciclos.unshift(data);
+    }
+    closeModal();showToast('✓ Ciclo cerrado');renderCiclos();
+  }catch(e){showToast('Error: '+e.message);}
+}
+
+async function editarNotasCiclo(key){
+  const ciclosCalc=buildCiclosFromOrders();
+  const c=ciclosCalc.find(x=>x.key===key);if(!c)return;
+  const notaActual=c.dbCiclo?.notas||'';
+  openModal(`
+    <p class="modal-title">Nota del ciclo</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">${c.fecha} · ${c.dia}</p>
+    <div style="margin-bottom:14px;">
+      <label class="form-label">Nota</label>
+      <input class="form-input" id="nota_input" type="text" value="${notaActual}" placeholder="Ej: Horneado con nuevo aceite..." style="margin-bottom:0;">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal primary" onclick="guardarNotaCiclo('${key}')">Guardar nota</button>
+      <button class="btn-close" onclick="openCicloModalByKey('${key}')">← Volver</button>
+    </div>
+  `);
+}
+
+async function guardarNotaCiclo(key){
+  const ciclosCalc=buildCiclosFromOrders();
+  const c=ciclosCalc.find(x=>x.key===key);if(!c)return;
+  const nota=document.getElementById('nota_input').value.trim();
+  try{
+    if(c.dbCiclo){
+      await sb.from('ciclos').update({notas:nota||null}).eq('id',c.dbCiclo.id);
+      const i=ciclos.findIndex(x=>x.id===c.dbCiclo.id);
+      if(i>=0)ciclos[i]={...ciclos[i],notas:nota||null};
+    } else {
+      const{data,error}=await sb.from('ciclos').insert({
+        fecha:c.fecha,dia:c.dia,estado:'abierto',
+        panes_trad:c.panesTrad,panes_semi:c.panesSemi,notas:nota||null
+      }).select().single();
+      if(error)throw error;
+      ciclos.unshift(data);
+    }
+    showToast('✓ Nota guardada');openCicloModalByKey(key);renderCiclos();
+  }catch(e){showToast('Error: '+e.message);}
 }
 
 async function cerrarCiclo(id){
