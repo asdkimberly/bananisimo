@@ -512,7 +512,7 @@ function buildCiclosFromOrders(){
     if(!map[key]){
       map[key]={
         key, wk, cycleId,
-        dia: cycleId==='mar'?'martes':cycleId==='jue'?'jueves':cycleId,
+        dia: cycleId==='mar'||cycleId==='martes'?'martes':'jueves',
         fecha: wk,
         orders:[], panesTotal:0, panesTrad:0, panesSemi:0,
         ingresos:0, costos:0,
@@ -647,7 +647,7 @@ async function cerrarCicloByKey(key){
       if(i>=0)ciclos[i]={...ciclos[i],estado:'cerrado'};
     } else {
       // Crear entrada en tabla ciclos solo para guardar estado
-      const diaVal=c.cycleId==='mar'?'martes':c.cycleId==='jue'?'jueves':(c.dia||'martes');
+      const diaVal=['martes','jueves'].includes(c.dia)?c.dia:c.cycleId==='mar'?'martes':'jueves';
       const{data,error}=await sb.from('ciclos').insert({
         fecha:c.fecha,dia:diaVal,estado:'cerrado',
         panes_trad:c.panesTrad,panes_semi:c.panesSemi
@@ -687,7 +687,7 @@ async function guardarNotaCiclo(key){
       const i=ciclos.findIndex(x=>x.id===c.dbCiclo.id);
       if(i>=0)ciclos[i]={...ciclos[i],notas:nota||null};
     } else {
-      const diaVal=c.cycleId==='mar'?'martes':c.cycleId==='jue'?'jueves':(c.dia||'martes');
+      const diaVal=['martes','jueves'].includes(c.dia)?c.dia:c.cycleId==='mar'?'martes':'jueves';
       const{data,error}=await sb.from('ciclos').insert({
         fecha:c.fecha,dia:diaVal,estado:'abierto',
         panes_trad:c.panesTrad,panes_semi:c.panesSemi,notas:nota||null
