@@ -302,11 +302,13 @@ function buildAlerts(activeOrders,weekTotal){
 }
 
 // ── RESUMEN ───────────────────────────────────────────────────
-function renderResumen(){
-  const el=document.getElementById('screen-resumen');
-  let periodOrders,label,canNext=false,from,to;
+let customFrom='',customTo='';
+
+function getPeriod(){
+  let periodOrders,from,to,label,canNext=false;
   if(resumenView==='semana'){
     const wk=getOffsetWeekKey(resumenOffset);
+    from=wk; to=wk;
     periodOrders=ordersForWeek(wk);
     label=resumenOffset===0?'Esta semana':resumenOffset===-1?'Semana pasada':'Hace '+Math.abs(resumenOffset)+' semanas';
     canNext=resumenOffset<0;
@@ -314,92 +316,173 @@ function renderResumen(){
     const r=getMonthRange(resumenOffset);from=r.from;to=r.to;
     periodOrders=ordersForPeriod(from,to);label=r.label;canNext=resumenOffset<0;
   } else {
-    const today=new Date().toISOString().slice(0,10);
-    const d=new Date();d.setDate(d.getDate()-30);
-    from=d.toISOString().slice(0,10);to=today;
-    periodOrders=ordersForPeriod(from,to);label='Últimos 30 días';
+    from=customFrom||'';to=customTo||'';
+    periodOrders=(from&&to)?ordersInPeriod(from,to):[];
+    label=from&&to?from+' → '+to:'Seleccioná rango';
   }
+  return{periodOrders,from,to,label,canNext};
+}
+
+function ordersInPeriod(from,to){
+  return orders.filter(o=>{const d=orderDate(o);return d>=from&&d<=to;});
+}
+
+function gastosInPeriod(from,to){
+  return gastos.filter(g=>g.fecha>=from&&g.fecha<=to);
+}
+
+function renderResumen(){
+  const el=document.getElementById('screen-resumen');
+  const{periodOrders,from,to,label,canNext}=getPeriod();
 
   const active=periodOrders.filter(o=>o.stage!=='cancelado');
   const entregados=periodOrders.filter(o=>o.stage==='entregado');
-  const ing=calcIngresos(active),cos=calcCostos(active),gan=ing-cos;
-  const ingEnt=calcIngresos(entregados);
-  const margen=ing>0?Math.round((gan/ing)*100):0;
+
+  // Ingresos — todos los pedidos activos del período
+  const ingBrutos=calcIngresos(active);
+  const costosProd=calcCostos(active);
+  // Ingresos reales cobrados (entregados)
+  const ingCobrado=calcIngresos(entregados);
+
+  // Gastos reales del período (tabla gastos)
+  const gastPeriod = resumenView==='semana'
+    ? gastosInPeriod(getOffsetWeekKey(resumenOffset), getOffsetWeekKey(resumenOffset)+'z') // semana completa
+    : (from&&to ? gastosInPeriod(from,to) : []);
+  // Para semana usamos un rango de 7 días
+  const wkStart = resumenView==='semana' ? getOffsetWeekKey(resumenOffset) : from;
+  const wkEnd   = resumenView==='semana' ? (() => {
+    const d=new Date(wkStart+'T12:00:00');d.setDate(d.getDate()+6);
+    return d.toISOString().slice(0,10);
+  })() : to;
+  const gastReal = (wkStart&&wkEnd) ? gastosInPeriod(wkStart,wkEnd) : [];
+  const totalGastReal=gastReal.reduce((s,g)=>s+g.precio_total,0);
+
+  // Balance real = cobrado - gastos reales registrados
+  const balanceReal=ingCobrado-totalGastReal;
+  // Ganancia estimada = ingresos brutos - costos estimados
+  const ganEstimada=ingBrutos-costosProd;
+  const margen=ingBrutos>0?Math.round((ganEstimada/ingBrutos)*100):0;
+
   const wkPanes=resumenView==='semana'?totalPanes(active):0;
   const alerts=buildAlerts(active,wkPanes);
 
   // Proyección: promedio últimas 4 semanas × 8
   const proyOrders=[];
   for(let i=1;i<=4;i++){const wk=getOffsetWeekKey(-i);proyOrders.push(calcGanancia(ordersForWeek(wk)));}
-  const promSemana=proyOrders.length>0?proyOrders.reduce((a,b)=>a+b,0)/proyOrders.filter(x=>x>0).length:0;
+  const validos=proyOrders.filter(x=>x>0);
+  const promSemana=validos.length>0?validos.reduce((a,b)=>a+b,0)/validos.length:0;
   const proyMensual=isFinite(promSemana)?promSemana*8:0;
 
   const navBtnStyle='background:rgba(255,255,255,0.14);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer;';
   const navBtnOff='opacity:0.25;background:transparent;border:0.5px solid rgba(255,255,255,0.1);color:var(--crema);border-radius:8px;width:34px;height:34px;font-size:16px;cursor:default;';
 
+  const customFields=resumenView==='rango'?`
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <input type="date" id="cf_from" value="${customFrom}"
+        onchange="customFrom=this.value;renderResumen()"
+        style="flex:1;background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;padding:6px 8px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:600;outline:none;">
+      <span style="color:var(--banano);line-height:32px;">→</span>
+      <input type="date" id="cf_to" value="${customTo}"
+        onchange="customTo=this.value;renderResumen()"
+        style="flex:1;background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;padding:6px 8px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:600;outline:none;">
+    </div>`:'';
+
+  // Desglose de gastos por categoría
+  const gastPorCat={ingredientes:0,empaque:0,operacion:0,equipo:0};
+  gastReal.forEach(g=>{if(gastPorCat[g.categoria]!==undefined)gastPorCat[g.categoria]+=g.precio_total;});
+
   el.innerHTML=`
     <div class="fin-header">
       <div style="display:flex;gap:6px;margin-bottom:12px;">
-        ${['semana','mes','30d'].map(v=>`<button onclick="resumenView='${v}';resumenOffset=0;renderResumen()"
+        ${['semana','mes','rango'].map(v=>`<button onclick="resumenView='${v}';resumenOffset=0;renderResumen()"
           style="flex:1;padding:5px 4px;border-radius:8px;border:0.5px solid rgba(255,255,255,${resumenView===v?'0.5':'0.2'});background:${resumenView===v?'rgba(239,159,39,0.25)':'transparent'};color:${resumenView===v?'var(--banano)':'rgba(250,238,218,0.6)'};font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase;">
-          ${v==='semana'?'Semana':v==='mes'?'Mes':'30 días'}
+          ${v==='semana'?'Semana':v==='mes'?'Mes':'Rango'}
         </button>`).join('')}
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
         <span style="font-size:14px;font-weight:700;color:var(--crema);">${label}</span>
-        ${resumenView!=='30d'?`<div style="display:flex;gap:6px;">
+        ${resumenView!=='rango'?`<div style="display:flex;gap:6px;">
           <button onclick="resumenOffset--;renderResumen()" style="${navBtnStyle}">←</button>
           <button onclick="resumenOffset++;renderResumen()" ${!canNext?'disabled':''} style="${canNext?navBtnStyle:navBtnOff}">→</button>
         </div>`:''}
       </div>
-      <div class="fin-main-val">${fp(gan)}</div>
-      <div class="fin-main-label">Ganancia estimada · Margen ${margen}%</div>
+      ${customFields}
+      <div style="margin-top:14px;">
+        <div class="fin-main-val" style="color:${balanceReal>=0?'var(--banano)':'#ff8080'};">${fp(balanceReal)}</div>
+        <div class="fin-main-label">Balance real (cobrado − gastos registrados)</div>
+      </div>
     </div>
 
     ${alerts.length>0?alerts.map(a=>`<div class="alert-item ${a.type}"><div class="alert-icon">${a.type==='warn'?'⚠️':a.type==='ok'?'✅':'ℹ️'}</div><div class="alert-text ${a.type}">${a.msg}</div></div>`).join(''):''}
 
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-val" style="font-size:19px;">${fp(ing)}</div><div class="stat-label">Ingresos</div><div class="stat-sub">${active.length} pedidos</div></div>
-      <div class="stat-card"><div class="stat-val" style="font-size:19px;">${fp(cos)}</div><div class="stat-label">Costos</div><div class="stat-sub">₡${Math.round(cos/(active.reduce((s,o)=>s+o.qty,0)||1)).toLocaleString('es-CR')}/pan</div></div>
-      <div class="stat-card"><div class="stat-val" style="font-size:19px;color:var(--hoja);">${fp(ingEnt)}</div><div class="stat-label">Cobrado</div><div class="stat-sub">${entregados.length} entregados</div></div>
-      <div class="stat-card"><div class="stat-val" style="font-size:19px;color:var(--dorado);">${fp(proyMensual)}</div><div class="stat-label">Proyección mes</div><div class="stat-sub">Prom últimas 4 sem × 8</div></div>
+    <!-- BALANCE REAL -->
+    <span class="sec-label">Balance real</span>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="fin-row"><span class="fin-label">💰 Ingresos cobrados</span><span class="fin-val green">+${fp(ingCobrado)}</span></div>
+      <div class="fin-row"><span class="fin-label">💸 Gastos registrados</span><span class="fin-val red">-${fp(totalGastReal)}</span></div>
+      ${totalGastReal>0?`
+        ${Object.entries(gastPorCat).filter(([,v])=>v>0).map(([cat,val])=>`
+        <div class="fin-row" style="padding:5px 0 5px 16px;border-bottom:none;">
+          <span style="font-size:12px;color:var(--text-muted);">· ${cat.charAt(0).toUpperCase()+cat.slice(1)}</span>
+          <span style="font-size:12px;font-weight:700;color:var(--rojo);">-${fp(val)}</span>
+        </div>`).join('')}`:''}
+      <div class="fin-row" style="border-top:1.5px solid var(--border-strong);margin-top:4px;">
+        <span class="fin-label" style="font-weight:700;color:var(--cacao);">Balance</span>
+        <span class="fin-val" style="font-size:16px;color:${balanceReal>=0?'var(--hoja)':'var(--rojo)'};">${balanceReal>=0?'+':''}${fp(balanceReal)}</span>
+      </div>
+      <div class="prog-wrap" style="margin-top:8px;">
+        <div class="prog-fill" style="width:${ingCobrado>0?Math.min(100,Math.round((ingCobrado-totalGastReal)/ingCobrado*100)):0}%;background:${balanceReal>=0?'var(--hoja)':'var(--rojo)'};"></div>
+      </div>
     </div>
 
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:12px;font-weight:700;color:var(--text-muted);">Margen</span><span style="font-size:12px;font-weight:700;color:var(--cacao);">${margen}%</span></div>
+    <!-- GANANCIA ESTIMADA -->
+    <span class="sec-label">Ganancia estimada (pedidos activos)</span>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="fin-row"><span class="fin-label">📦 Ingresos brutos</span><span class="fin-val gold">+${fp(ingBrutos)}</span></div>
+      <div class="fin-row"><span class="fin-label">⚙️ Costos estimados</span><span class="fin-val red">-${fp(costosProd)}</span></div>
+      <div class="fin-row" style="border-top:1.5px solid var(--border-strong);margin-top:4px;">
+        <span class="fin-label" style="font-weight:700;color:var(--cacao);">Ganancia est.</span>
+        <span class="fin-val" style="font-size:16px;color:${ganEstimada>=0?'var(--hoja)':'var(--rojo)'};">${ganEstimada>=0?'+':''}${fp(ganEstimada)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:10px;margin-bottom:4px;">
+        <span style="font-size:12px;font-weight:700;color:var(--text-muted);">Margen estimado</span>
+        <span style="font-size:12px;font-weight:700;color:var(--cacao);">${margen}%</span>
+      </div>
       <div class="prog-wrap"><div class="prog-fill" style="width:${Math.max(0,Math.min(100,margen))}%;background:${margen>=45?'var(--hoja)':margen>=35?'var(--amarillo)':'var(--rojo)'}"></div></div>
-      <div style="display:flex;justify-content:space-between;margin-top:10px;margin-bottom:5px;"><span style="font-size:12px;font-weight:700;color:var(--text-muted);">Panes acumulados</span><span style="font-size:12px;font-weight:700;color:var(--cacao);">${panesAcum} / ${cfg.panes_amort_total||100}</span></div>
-      <div class="prog-wrap"><div class="prog-fill" style="width:${Math.min(100,Math.round(panesAcum/(cfg.panes_amort_total||100)*100))}%;background:var(--dorado);"></div></div>
     </div>
 
-    <span class="sec-label">Desglose de costos / pan</span>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-val" style="font-size:18px;">${fp(ingBrutos)}</div><div class="stat-label">Ingresos</div><div class="stat-sub">${active.length} pedidos</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:18px;">${fp(totalGastReal)}</div><div class="stat-label">Gastos reales</div><div class="stat-sub">${gastReal.length} registros</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:18px;color:var(--hoja);">${fp(ingCobrado)}</div><div class="stat-label">Cobrado</div><div class="stat-sub">${entregados.length} entregados</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:18px;color:var(--dorado);">${fp(proyMensual)}</div><div class="stat-label">Proy. mensual</div><div class="stat-sub">Últ. 4 sem × 8</div></div>
+    </div>
+
     <div class="card">
-      ${[['trad','Tradicional'],['semi','Con Semillas']].map(([id,name])=>{
-        const c=costoPan(id);const p=id==='trad'?(cfg.precio_trad||3500):(cfg.precio_semi||3750);
-        const m=Math.round(((p-c)/p)*100);
-        return`<div class="fin-row">
-          <div><div style="font-size:13px;font-weight:700;color:var(--cacao);">${name}</div>
-            <div style="font-size:11px;color:var(--text-muted);">Costo ${fp(c)} · Precio ${fp(p)}</div>
-          </div>
-          <div style="text-align:right;"><div style="font-size:14px;font-weight:700;color:var(--hoja);">+${fp(p-c)}</div>
-            <div style="font-size:11px;color:var(--text-muted);">${m}% margen</div>
-          </div>
-        </div>`;
-      }).join('')}
-      <div style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5;">
-        Empaque: ${fp(cfg.costo_empaque_base||351)} · Amort: ${fp(panesAcum<(cfg.panes_amort_total||100)?cfg.costo_amort_pan||111:0)}/pan
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:12px;font-weight:700;color:var(--text-muted);">Panes acumulados</span><span style="font-size:12px;font-weight:700;color:var(--cacao);">${panesAcum} / ${cfg.panes_amort_total||100}</span></div>
+      <div class="prog-wrap"><div class="prog-fill" style="width:${Math.min(100,Math.round(panesAcum/(cfg.panes_amort_total||100)*100))}%;background:var(--dorado);"></div></div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">
+        Amortización: ${fp(panesAcum<(cfg.panes_amort_total||100)?cfg.costo_amort_pan||111:0)}/pan · ${panesAcum>=(cfg.panes_amort_total||100)?'✅ Completada':'En curso'}
       </div>
     </div>
 
     <span class="sec-label">Últimos ciclos</span>
     ${ciclos.slice(0,5).map(c=>{
-      const co=c.ciclo_orders||[];
       const gan=((c.panes_trad||0)*(cfg.precio_trad||3500)+(c.panes_semi||0)*(cfg.precio_semi||3750))
                -((c.panes_trad||0)*costoPan('trad')+(c.panes_semi||0)*costoPan('semi'));
+      const gastCiclo=gastos.filter(g=>g.ciclo_id===c.id).reduce((s,g)=>s+g.precio_total,0);
+      const ganReal=gan-gastCiclo;
       return`<div class="ciclo-card ${c.estado}" onclick="showScreen('ciclos');setTimeout(()=>openCicloModal('${c.id}'),100);">
         <div class="ciclo-top">
-          <div><div class="ciclo-fecha">${c.fecha}</div><div class="ciclo-panes">${(c.panes_trad||0)+(c.panes_semi||0)} panes — ${c.panes_trad||0} trad · ${c.panes_semi||0} semi</div></div>
-          <div style="text-align:right;"><div class="ciclo-dia ${c.dia}">${c.dia}</div><div class="ciclo-ganancia ${gan>=0?'':'red'}" style="color:${gan>=0?'var(--hoja)':'var(--rojo)'};">${fp(gan)}</div></div>
+          <div>
+            <div class="ciclo-fecha">${c.fecha}</div>
+            <div class="ciclo-panes">${(c.panes_trad||0)+(c.panes_semi||0)} panes · ${c.panes_trad||0} trad · ${c.panes_semi||0} semi</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="ciclo-dia ${c.dia}">${c.dia}</div>
+            <div class="ciclo-ganancia" style="color:${ganReal>=0?'var(--hoja)':'var(--rojo)'};">${fp(ganReal)}</div>
+            ${gastCiclo>0?`<div style="font-size:10px;color:var(--text-muted);">-${fp(gastCiclo)} gastos</div>`:''}
+          </div>
         </div>
       </div>`;
     }).join('')||`<div class="empty-state"><div class="e-icon">📅</div><div class="e-title">Sin ciclos</div></div>`}
