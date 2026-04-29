@@ -903,12 +903,24 @@ async function eliminarPedido(){
   const o=allOrders.find(x=>x.id===currentOrderId);if(!o)return;
   if(!confirm(`¿Eliminar el pedido de ${o.client_name} permanentemente?\nEsta acción no se puede deshacer.`))return;
   try{
+    // Devolver stock según receta
+    const recipe=productMaterials.filter(pm=>pm.product_id===o.product_id);
+    for(const pm of recipe){
+      const idx=ingredients.findIndex(x=>x.id===pm.ingredient_id);
+      if(idx<0)continue;
+      const devolucion=pm.qty_per_unit*o.qty;
+      const newStock=ingredients[idx].stock+devolucion;
+      await sb.from('ingredients').update({stock:newStock}).eq('id',pm.ingredient_id);
+      await sb.from('stock_movements').insert({ingredient_id:pm.ingredient_id,type:'ajuste',qty:devolucion});
+      ingredients[idx]={...ingredients[idx],stock:newStock};
+    }
     await sb.from('payments').delete().eq('order_id',currentOrderId);
     const{error}=await sb.from('orders').delete().eq('id',currentOrderId);
     if(error)throw error;
     allOrders=allOrders.filter(x=>x.id!==currentOrderId);
     allPayments=allPayments.filter(x=>x.order_id!==currentOrderId);
-    closeModal();showToast('🗑 Pedido eliminado');rerenderCurrent();
+    updateStockBadge();
+    closeModal();showToast('🗑 Pedido eliminado — stock devuelto');rerenderCurrent();
   }catch(e){showError('Error al eliminar: '+e.message);}
 }
 
@@ -938,9 +950,9 @@ function openEditPanel(){
 
   document.getElementById('modalContent').innerHTML=`
     <p class="modal-title" style="margin-bottom:16px;">✏️ Editar pedido</p>
-    <p style="font-size:13px;font-weight:700;color:var(--cacao);margin-bottom:16px;">${o.client_name}</p>
+    <p style="font-size:13px;font-weight:700;color:var(--cacao);margin-bottom:12px;">${o.client_name}</p>
 
-    <div class="form-group"><label class="form-label">Stage actual</label>
+    <div class="form-group"><label class="form-label">Stage</label>
       <div class="stage-selector">
         ${[...STAGES,'cancelado'].map(s=>{
           const sc=STAGE_COLOR[s];
@@ -952,14 +964,30 @@ function openEditPanel(){
       </div>
     </div>
 
+    <div class="form-group"><label class="form-label">Producto</label>
+      <select class="form-input" id="edit_product">
+        ${products.map(p=>`<option value="${p.id}" ${o.product_id===p.id?'selected':''}>${p.name} — ${formatPrice(p.price)}</option>`).join('')}
+      </select>
+    </div>
+
+    <div class="form-group"><label class="form-label">Cantidad (loafs)</label>
+      <input class="form-input" id="edit_qty" type="number" min="1" max="${MAX_SEMANA}" value="${o.qty}">
+    </div>
+
+    <div class="form-group"><label class="form-label">Teléfono / WhatsApp</label>
+      <input class="form-input" id="edit_phone" type="tel" value="${o.client_phone||''}" placeholder="8888-8888">
+    </div>
+
     <div class="form-group"><label class="form-label">Fecha del pedido</label>
       <input class="form-input" id="edit_date" type="date" value="${orderDate}" max="${today}">
     </div>
+
     <div class="form-group"><label class="form-label">Ciclo de entrega</label>
       <select class="form-input" id="edit_cycle">
         ${CYCLES.map(c=>`<option value="${c.id}" ${o.cycle_id===c.id?'selected':''}>${c.label} → entrega ${c.entrega}</option>`).join('')}
       </select>
     </div>
+
     <div class="form-group"><label class="form-label">Notas</label>
       <input class="form-input" id="edit_notes" type="text" value="${o.notes||''}" placeholder="Sin notas">
     </div>
@@ -996,18 +1024,53 @@ async function saveOrderEdit(){
   const o=allOrders.find(x=>x.id===currentOrderId);if(!o)return;
   const btn=event.target;btn.disabled=true;btn.textContent='Guardando...';
   try{
+    const newProduct=document.getElementById('edit_product').value;
+    const newQty=parseInt(document.getElementById('edit_qty').value)||o.qty;
+    const newPhone=document.getElementById('edit_phone').value.trim();
     const newDate=document.getElementById('edit_date').value;
     const newCycle=document.getElementById('edit_cycle').value;
     const newNotes=document.getElementById('edit_notes').value.trim();
-    const newWeekKey=getWeekKey(new Date(newDate+'T12:00:00'));
+    const newWeekKey=getWeekKey(newDate);
     const newStage=editStageSelected||(o.stage||'recibido');
+    const newPrice=(products.find(p=>p.id===newProduct)||{price:o.price}).price;
+
+    // Ajustar stock si cambió producto o cantidad
+    const productChanged=newProduct!==o.product_id;
+    const qtyChanged=newQty!==o.qty;
+    if(productChanged||qtyChanged){
+      // Devolver stock del pedido original
+      const oldRecipe=productMaterials.filter(pm=>pm.product_id===o.product_id);
+      for(const pm of oldRecipe){
+        const idx=ingredients.findIndex(x=>x.id===pm.ingredient_id);
+        if(idx<0)continue;
+        const devolucion=pm.qty_per_unit*o.qty;
+        const restored=ingredients[idx].stock+devolucion;
+        await sb.from('ingredients').update({stock:restored}).eq('id',pm.ingredient_id);
+        ingredients[idx]={...ingredients[idx],stock:restored};
+      }
+      // Descontar stock del nuevo pedido
+      const newRecipe=productMaterials.filter(pm=>pm.product_id===newProduct);
+      for(const pm of newRecipe){
+        const idx=ingredients.findIndex(x=>x.id===pm.ingredient_id);
+        if(idx<0)continue;
+        const consumo=pm.qty_per_unit*newQty;
+        const newStock=Math.max(0,ingredients[idx].stock-consumo);
+        await sb.from('ingredients').update({stock:newStock}).eq('id',pm.ingredient_id);
+        await sb.from('stock_movements').insert({ingredient_id:pm.ingredient_id,type:'uso',qty:-consumo});
+        ingredients[idx]={...ingredients[idx],stock:newStock};
+      }
+      updateStockBadge();
+    }
 
     const{error:eo}=await sb.from('orders').update({
+      product_id:newProduct,qty:newQty,price:newPrice,
+      client_phone:newPhone||null,
       order_date:newDate,cycle_id:newCycle,notes:newNotes||null,
       week_key:newWeekKey,stage:newStage,
     }).eq('id',currentOrderId);
     if(eo)throw eo;
 
+    // Actualizar fechas de pagos
     const pagos=orderPayments(currentOrderId);
     for(const p of pagos){
       const el=document.getElementById('edit_pay_'+p.id);
@@ -1019,8 +1082,9 @@ async function saveOrderEdit(){
         if(pi>=0)allPayments[pi]={...allPayments[pi],payment_date:newPayDate};
       }
     }
+
     const oi=allOrders.findIndex(x=>x.id===currentOrderId);
-    if(oi>=0)allOrders[oi]={...allOrders[oi],order_date:newDate,cycle_id:newCycle,notes:newNotes||null,week_key:newWeekKey,stage:newStage};
+    if(oi>=0)allOrders[oi]={...allOrders[oi],product_id:newProduct,qty:newQty,price:newPrice,client_phone:newPhone||null,order_date:newDate,cycle_id:newCycle,notes:newNotes||null,week_key:newWeekKey,stage:newStage};
     editStageSelected=null;
     showToast('✓ Pedido actualizado');openOrderModal(currentOrderId);rerenderCurrent();
   }catch(e){showError('Error: '+e.message);btn.disabled=false;btn.textContent='Guardar cambios';}
