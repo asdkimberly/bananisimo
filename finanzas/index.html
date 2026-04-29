@@ -562,16 +562,17 @@ function renderGastos(){
       </div>
     </div>
     ${gastos.length===0?`<div class="empty-state"><div class="e-icon">💸</div><div class="e-title">Sin gastos registrados</div></div>`
-    :gastos.map(g=>`<div class="card" style="margin-bottom:8px;">
+    :gastos.map(g=>`<div class="card" style="margin-bottom:8px;cursor:pointer;" onclick="openEditGasto('${g.id}')">
       <div class="gasto-row" style="border:none;padding:0;">
-        <div>
+        <div style="flex:1;">
           <div class="gasto-item">${g.item}</div>
           <span class="gasto-cat ${g.categoria}">${g.categoria}</span>
           <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">${g.fecha}${g.ciclo_id?' · ciclo':''}${g.notas?' · '+g.notas:''}</div>
         </div>
-        <div style="text-align:right;">
+        <div style="text-align:right;flex-shrink:0;">
           <div class="gasto-monto">-${fp(g.precio_total)}</div>
           ${g.cantidad?`<div style="font-size:11px;color:var(--text-muted);">${g.cantidad} ${g.unidad||''}</div>`:''}
+          <div style="font-size:10px;color:var(--dorado);font-weight:700;margin-top:4px;">✏️ editar</div>
         </div>
       </div>
     </div>`).join('')}
@@ -617,6 +618,80 @@ function openNuevoGasto(cicloId=null){
 }
 
 function openNuevoGastoParaCiclo(cicloId){closeModal();setTimeout(()=>openNuevoGasto(cicloId),200);}
+
+function openEditGasto(gastoId){
+  const g=gastos.find(x=>x.id===gastoId);if(!g)return;
+  openModal(`
+    <p class="modal-title">✏️ Editar gasto</p>
+    <div style="margin-bottom:14px;"><label class="form-label">Categoría</label>
+      <select class="form-input" id="eg_cat" style="margin-bottom:0;">
+        ${['ingredientes','empaque','operacion','equipo'].map(c=>`<option value="${c}" ${g.categoria===c?'selected':''}>${c.charAt(0).toUpperCase()+c.slice(1)}</option>`).join('')}
+      </select>
+    </div>
+    <div style="margin-bottom:14px;"><label class="form-label">Descripción</label>
+      <input class="form-input" id="eg_item" type="text" value="${g.item}" style="margin-bottom:0;">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div><label class="form-label">Cantidad</label><input class="form-input" id="eg_cant" type="number" value="${g.cantidad||''}" placeholder="Ej: 2" style="margin-bottom:0;"></div>
+      <div><label class="form-label">Unidad</label><input class="form-input" id="eg_uni" type="text" value="${g.unidad||''}" placeholder="Ej: bolsas" style="margin-bottom:0;"></div>
+    </div>
+    <div style="margin-bottom:14px;"><label class="form-label">Monto total (₡)</label>
+      <input class="form-input" id="eg_monto" type="number" value="${g.precio_total}" style="margin-bottom:0;">
+    </div>
+    <div style="margin-bottom:14px;"><label class="form-label">Fecha</label>
+      <input class="form-input" id="eg_fecha" type="date" value="${g.fecha}" style="margin-bottom:0;">
+    </div>
+    <div style="margin-bottom:14px;"><label class="form-label">Ciclo asociado (opcional)</label>
+      <select class="form-input" id="eg_ciclo" style="margin-bottom:0;">
+        <option value="">— Sin ciclo —</option>
+        ${ciclos.map(c=>`<option value="${c.id}" ${g.ciclo_id===c.id?'selected':''}>${c.fecha} · ${c.dia}</option>`).join('')}
+      </select>
+    </div>
+    <div style="margin-bottom:14px;"><label class="form-label">Notas (opcional)</label>
+      <input class="form-input" id="eg_notas" type="text" value="${g.notas||''}" placeholder="Observaciones..." style="margin-bottom:0;">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal primary" onclick="saveEditGasto('${g.id}')">Guardar cambios</button>
+      <button class="btn-modal danger" onclick="eliminarGasto('${g.id}')">🗑 Eliminar gasto</button>
+      <button class="btn-close" onclick="closeModal()">Cancelar</button>
+    </div>
+  `);
+}
+
+async function saveEditGasto(gastoId){
+  const item=document.getElementById('eg_item').value.trim();
+  const monto=parseFloat(document.getElementById('eg_monto').value);
+  if(!item){showToast('⚠️ Ingresá una descripción');return;}
+  if(!monto||monto<=0){showToast('⚠️ Ingresá un monto válido');return;}
+  const btn=event.target;btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    const updates={
+      categoria:document.getElementById('eg_cat').value,
+      item,
+      cantidad:parseFloat(document.getElementById('eg_cant').value)||null,
+      unidad:document.getElementById('eg_uni').value.trim()||null,
+      precio_total:monto,
+      fecha:document.getElementById('eg_fecha').value,
+      ciclo_id:document.getElementById('eg_ciclo').value||null,
+      notas:document.getElementById('eg_notas').value.trim()||null,
+    };
+    const{error}=await sb.from('gastos').update(updates).eq('id',gastoId);
+    if(error)throw error;
+    const i=gastos.findIndex(x=>x.id===gastoId);
+    if(i>=0)gastos[i]={...gastos[i],...updates};
+    closeModal();showToast('✓ Gasto actualizado');renderGastos();
+  }catch(e){showToast('Error: '+e.message);btn.disabled=false;btn.textContent='Guardar cambios';}
+}
+
+async function eliminarGasto(gastoId){
+  if(!confirm('¿Eliminar este gasto?'))return;
+  try{
+    const{error}=await sb.from('gastos').delete().eq('id',gastoId);
+    if(error)throw error;
+    gastos=gastos.filter(x=>x.id!==gastoId);
+    closeModal();showToast('🗑 Gasto eliminado');renderGastos();
+  }catch(e){showToast('Error: '+e.message);}
+}
 
 async function saveGasto(){
   const item=document.getElementById('ng_item').value.trim();
