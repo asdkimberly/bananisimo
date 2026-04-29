@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#412402">
+<title>Bananísimo · Finanzas</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --cacao:#412402;--dorado:#BA7517;--banano:#EF9F27;
+  --crema:#FAEEDA;--crema-dark:#f0e0c0;
+  --hoja:#3B6D11;--rojo:#c0392b;--amarillo:#d4a017;--azul:#1a5276;
+  --bg:#f5f0e8;--white:#fff;--text:#2C2C2A;--text-muted:#888780;
+  --border:rgba(44,44,42,0.12);--border-strong:rgba(44,44,42,0.22);
+  --radius:14px;--radius-sm:9px;
+}
+body{font-family:'Quicksand',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:80px;}
+/* TOPBAR */
+.topbar{background:var(--cacao);padding:14px 18px 12px;position:sticky;top:0;z-index:100;}
+.logo{font-size:18px;font-weight:700;color:var(--banano);}
+.logo span{color:var(--crema);}
+.logo-sub{font-size:11px;color:rgba(239,159,39,0.7);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;}
+/* NAV */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--white);border-top:0.5px solid var(--border-strong);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom);}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;background:none;border:none;cursor:pointer;color:var(--text-muted);font-family:'Quicksand',sans-serif;font-size:9px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;transition:color 0.15s;}
+.nav-btn.active{color:var(--dorado);}
+.nav-btn svg{width:20px;height:20px;}
+/* SCREENS */
+.screen{display:none;padding:16px;}.screen.active{display:block;}
+/* LOADING */
+.loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:14px;}
+.loading-overlay.hidden{display:none;}
+.spinner{width:28px;height:28px;border:3px solid var(--crema-dark);border-top-color:var(--dorado);border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* CONFIG */
+.config-card{background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius);padding:20px;margin:16px;}
+.config-note{background:var(--crema);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--cacao);line-height:1.65;margin-bottom:16px;}
+.form-label{display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;}
+.form-input{width:100%;border:0.5px solid var(--border-strong);border-radius:var(--radius-sm);padding:11px 13px;font-family:'Quicksand',sans-serif;font-size:14px;font-weight:600;color:var(--text);background:var(--white);outline:none;margin-bottom:14px;-webkit-appearance:none;}
+.form-input:focus{border-color:var(--dorado);}
+select.form-input{cursor:pointer;}
+.btn-primary{width:100%;background:var(--cacao);color:var(--banano);border:none;border-radius:var(--radius-sm);padding:14px;font-family:'Quicksand',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-primary:disabled{opacity:0.6;}
+/* CARDS */
+.card{background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;}
+.sec-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;display:block;}
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.stat-card{background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;}
+.stat-val{font-size:22px;font-weight:700;color:var(--cacao);line-height:1;margin-bottom:3px;}
+.stat-label{font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;}
+.stat-sub{font-size:11px;color:var(--dorado);font-weight:600;margin-top:2px;}
+/* HEADER FINANCIERO */
+.fin-header{border-radius:var(--radius);padding:18px;margin-bottom:14px;background:linear-gradient(135deg,#2c1a08,var(--cacao));}
+.fin-main-val{font-size:34px;font-weight:700;color:var(--banano);line-height:1;}
+.fin-main-label{font-size:11px;color:rgba(250,238,218,0.7);font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-top:4px;}
+.fin-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid #F1EFE8;}
+.fin-row:last-child{border-bottom:none;}
+.fin-label{font-size:13px;color:var(--text-muted);font-weight:600;}
+.fin-val{font-size:14px;font-weight:700;}
+.fin-val.green{color:var(--hoja);}
+.fin-val.red{color:var(--rojo);}
+.fin-val.gold{color:var(--dorado);}
+/* PROGRESS */
+.prog-wrap{background:#F1EFE8;border-radius:20px;height:7px;overflow:hidden;margin:5px 0;}
+.prog-fill{height:100%;border-radius:20px;transition:width 0.4s;}
+/* ALERTS */
+.alert-item{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:8px;}
+.alert-item.warn{background:#fff3cd;border:0.5px solid #ffc107;}
+.alert-item.info{background:#e8f4fd;border:0.5px solid #3498db;}
+.alert-item.ok{background:#d5f5e3;border:0.5px solid #27ae60;}
+.alert-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.alert-text{font-size:12px;font-weight:600;line-height:1.5;}
+.alert-text.warn{color:#664d03;}
+.alert-text.info{color:#1a5276;}
+.alert-text.ok{color:#1e8449;}
+/* CICLOS */
+.ciclo-card{background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:13px 14px;margin-bottom:8px;cursor:pointer;transition:background 0.15s;}
+.ciclo-card:active{background:var(--crema);}
+.ciclo-card.abierto{border-left:3px solid var(--dorado);}
+.ciclo-card.cerrado{border-left:3px solid var(--hoja);}
+.ciclo-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.ciclo-fecha{font-size:14px;font-weight:700;color:var(--cacao);}
+.ciclo-dia{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;}
+.ciclo-dia.martes{background:#fef9e7;color:#7d6608;}
+.ciclo-dia.jueves{background:#f0e6ff;color:#6c3483;}
+.ciclo-panes{font-size:12px;color:var(--text-muted);font-weight:600;}
+.ciclo-ganancia{font-size:16px;font-weight:700;}
+/* GASTOS */
+.gasto-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid #F1EFE8;}
+.gasto-row:last-child{border-bottom:none;}
+.gasto-item{font-size:13px;font-weight:600;color:var(--cacao);}
+.gasto-cat{font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;margin-top:2px;display:inline-block;}
+.gasto-cat.ingredientes{background:#e8f4fd;color:#1a5276;}
+.gasto-cat.empaque{background:#f0e6ff;color:#6c3483;}
+.gasto-cat.operacion{background:#fef9e7;color:#7d6608;}
+.gasto-cat.equipo{background:#fde8e8;color:#922b21;}
+.gasto-monto{font-size:14px;font-weight:700;color:var(--rojo);}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(65,36,2,0.55);z-index:200;display:none;align-items:flex-end;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal-sheet{background:var(--white);border-radius:20px 20px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom));width:100%;max-width:430px;max-height:92dvh;overflow-y:auto;}
+.modal-handle{width:40px;height:4px;background:#D3D1C7;border-radius:2px;margin:0 auto 18px;}
+.modal-title{font-size:18px;font-weight:700;color:var(--cacao);margin-bottom:16px;}
+.modal-actions{display:flex;flex-direction:column;gap:8px;margin-top:18px;}
+.btn-modal{width:100%;padding:13px;border-radius:var(--radius-sm);font-family:'Quicksand',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;}
+.btn-modal.primary{background:var(--cacao);color:var(--banano);}
+.btn-modal.danger{background:#fde8e8;color:#922b21;}
+.btn-close{background:transparent;color:var(--text-muted);border:0.5px solid var(--border-strong);border-radius:var(--radius-sm);padding:12px;font-family:'Quicksand',sans-serif;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:4px;}
+/* TABS */
+.view-tabs{display:flex;gap:6px;margin-bottom:14px;}
+.view-tab{flex:1;padding:8px 4px;border-radius:var(--radius-sm);border:0.5px solid var(--border-strong);background:var(--white);font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;color:var(--text-muted);cursor:pointer;text-align:center;text-transform:uppercase;}
+.view-tab.active{background:var(--cacao);color:var(--banano);border-color:var(--cacao);}
+/* AMORT BADGE */
+.amort-badge{background:var(--crema);border:0.5px solid var(--dorado);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;color:var(--cacao);}
+/* NAV ARROWS */
+.nav-arrow-btn{background:rgba(255,255,255,0.14);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer;font-family:monospace;}
+.nav-arrow-btn:disabled{opacity:0.25;cursor:default;}
+/* TOAST */
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--cacao);color:var(--crema);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:300;white-space:nowrap;opacity:0;transition:opacity 0.2s;pointer-events:none;}
+.toast.show{opacity:1;}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted);}
+.empty-state .e-icon{font-size:40px;margin-bottom:12px;}
+.empty-state .e-title{font-size:15px;font-weight:700;color:var(--cacao);margin-bottom:6px;}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="logo">Banan<span>í</span>simo</div>
+  <div style="font-size:11px;color:var(--text-muted);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">Finanzas</div>
+  <div class="spinner"></div>
+</div>
+
+<div id="configScreen" style="display:none;">
+  <div class="topbar"><div class="logo">Banan<span>í</span>simo · <span style="color:var(--crema);">Finanzas</span></div></div>
+  <div class="config-card">
+    <div style="font-size:18px;font-weight:700;color:var(--cacao);margin-bottom:6px;">Conectar Supabase</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px;line-height:1.6;">Usá las mismas credenciales de la app de pedidos.</div>
+    <div class="config-note"><strong>Supabase</strong> → Settings → API Keys → Project URL + Publishable key</div>
+    <label class="form-label">Project URL</label>
+    <input class="form-input" id="cfgUrl" type="url" placeholder="https://xxxx.supabase.co">
+    <label class="form-label">Publishable Key</label>
+    <input class="form-input" id="cfgKey" type="text" placeholder="sb_publishable_...">
+    <button class="btn-primary" onclick="saveConfig()">Conectar →</button>
+  </div>
+</div>
+
+<div id="mainApp" style="display:none;">
+  <div class="topbar">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div><div class="logo">Banan<span>í</span>simo</div><div class="logo-sub">Finanzas</div></div>
+      <div id="amortBadge" class="amort-badge" style="display:none;"></div>
+    </div>
+  </div>
+
+  <div class="screen active" id="screen-resumen"></div>
+  <div class="screen" id="screen-ciclos"></div>
+  <div class="screen" id="screen-gastos"></div>
+  <div class="screen" id="screen-config"></div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="showScreen('resumen',this)" id="nav-resumen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Resumen
+    </button>
+    <button class="nav-btn" onclick="showScreen('ciclos',this)" id="nav-ciclos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Ciclos
+    </button>
+    <button class="nav-btn" onclick="showScreen('gastos',this)" id="nav-gastos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      Gastos
+    </button>
+    <button class="nav-btn" onclick="showScreen('config',this)" id="nav-config">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Config
+    </button>
+  </nav>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal-sheet"><div class="modal-handle"></div><div id="modalContent"></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── ESTADO ────────────────────────────────────────────────────
+let sb=null, orders=[], ciclos=[], gastos=[], cfg={}, panesAcum=0;
+let currentScreen='resumen', currentCicloId=null;
+let resumenView='semana', resumenOffset=0;
+
+// ── CONFIG ────────────────────────────────────────────────────
+function loadConfig(){return{url:localStorage.getItem('sb_url_fin')||localStorage.getItem('sb_url')||'',key:localStorage.getItem('sb_key_fin')||localStorage.getItem('sb_key')||''};}
+function saveConfig(){
+  const url=document.getElementById('cfgUrl').value.trim();
+  const key=document.getElementById('cfgKey').value.trim();
+  if(!url||!key){showToast('⚠️ Completá los dos campos');return;}
+  localStorage.setItem('sb_url_fin',url);localStorage.setItem('sb_key_fin',key);
+  initApp();
+}
+
+async function initApp(){
+  const{url,key}=loadConfig();
+  if(!url||!key){document.getElementById('loadingOverlay').classList.add('hidden');document.getElementById('configScreen').style.display='block';return;}
+  try{
+    sb=supabase.createClient(url,key);
+    const[r1,r2,r3,r4,r5]=await Promise.all([
+      sb.from('orders').select('id,product_id,qty,price,stage,order_date,week_key,created_at').order('created_at',{ascending:false}).limit(500),
+      sb.from('ciclos').select('*').order('fecha',{ascending:false}),
+      sb.from('gastos').select('*').order('fecha',{ascending:false}),
+      sb.from('config_finanzas').select('*'),
+      sb.from('panes_acumulados').select('total').eq('id',1).single(),
+    ]);
+    if(r1.error)throw r1.error;
+    orders=r1.data||[];ciclos=r2.data||[];gastos=r3.data||[];
+    cfg={};(r4.data||[]).forEach(c=>cfg[c.clave]=c.valor);
+    panesAcum=(r5.data?.total)||0;
+    document.getElementById('loadingOverlay').classList.add('hidden');
+    document.getElementById('mainApp').style.display='block';
+    updateAmortBadge();renderResumen();
+  }catch(e){
+    console.error(e);
+    document.getElementById('loadingOverlay').classList.add('hidden');
+    document.getElementById('configScreen').style.display='block';
+    showToast('❌ Error de conexión');
+  }
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function fp(n){return'₡'+Number(n||0).toLocaleString('es-CR');}
+function showToast(msg,d=2400){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),d);}
+function showScreen(name,btn){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  (btn||document.getElementById('nav-'+name)).classList.add('active');
+  currentScreen=name;renderScreen(name);
+}
+function renderScreen(n){({resumen:renderResumen,ciclos:renderCiclos,gastos:renderGastos,config:renderConfigScreen})[n]?.();}
+function closeModal(e){if(e&&e.target!==document.getElementById('modalOverlay'))return;document.getElementById('modalOverlay').classList.remove('open');}
+function openModal(html){document.getElementById('modalContent').innerHTML=html;document.getElementById('modalOverlay').classList.add('open');}
+
+function getWeekKey(d){
+  let x=d?new Date(typeof d==='string'&&d.length===10?d+'T12:00:00':d):new Date();
+  const y=x.getFullYear(),m=x.getMonth(),day=x.getDate();
+  const tmp=new Date(y,m,day);const dow=tmp.getDay();
+  tmp.setDate(tmp.getDate()+(dow===0?-6:1-dow));
+  return tmp.getFullYear()+'-'+String(tmp.getMonth()+1).padStart(2,'0')+'-'+String(tmp.getDate()).padStart(2,'0');
+}
+function getOffsetWeekKey(offset){const d=new Date();d.setDate(d.getDate()+offset*7);return getWeekKey(d);}
+function getMonthRange(offset){
+  const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+offset);
+  const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  return{from:new Date(d.getFullYear(),d.getMonth(),1).toISOString().slice(0,10),to:new Date(d.getFullYear(),d.getMonth()+1,0).toISOString().slice(0,10),label:months[d.getMonth()]+' '+d.getFullYear()};
+}
+function orderDate(o){return(o.order_date||o.week_key||o.created_at).slice(0,10);}
+function ordersForPeriod(from,to){return orders.filter(o=>{const d=orderDate(o);return d>=from&&d<=to;});}
+function ordersForWeek(wk){return orders.filter(o=>getWeekKey(orderDate(o))===wk);}
+
+// ── COSTO ─────────────────────────────────────────────────────
+function costoPan(productId){
+  // Detectar product_id real — puede ser uuid o texto corto
+  const isSemi=productId&&(productId==='semi'||productId.toLowerCase().includes('semi')||productId.toLowerCase().includes('semilla'));
+  const ing=isSemi?(cfg.costo_ing_semi||1618):(cfg.costo_ing_trad||1468);
+  const empaque=cfg.costo_empaque_base||351;
+  const amort=panesAcum<(cfg.panes_amort_total||100)?(cfg.costo_amort_pan||111):0;
+  return ing+empaque+amort;
+}
+function calcGanancia(ordersList){
+  return ordersList.reduce((s,o)=>s+(o.qty*o.price)-(costoPan(o.product_id)*o.qty),0);
+}
+function calcIngresos(ordersList){return ordersList.reduce((s,o)=>s+(o.qty*o.price),0);}
+function calcCostos(ordersList){return ordersList.reduce((s,o)=>s+(costoPan(o.product_id)*o.qty),0);}
+function totalPanes(ordersList){return ordersList.filter(o=>o.stage!=='cancelado').reduce((s,o)=>s+o.qty,0);}
+
+function updateAmortBadge(){
+  const badge=document.getElementById('amortBadge');
+  if(!badge)return;
+  const total=cfg.panes_amort_total||100;
+  if(panesAcum>=total){badge.textContent='✓ Equipo amortizado';badge.style.display='inline-block';badge.style.color='var(--hoja)';}
+  else if(panesAcum>=90){badge.textContent=`⚡ ${total-panesAcum} panes para amortizar`;badge.style.display='inline-block';}
+  else badge.style.display='none';
+}
+
+function buildAlerts(activeOrders,weekTotal){
+  const alerts=[];
+  const ing=calcIngresos(activeOrders);const cos=calcCostos(activeOrders);
+  const margen=ing>0?(ing-cos)/ing:0;
+  if(margen>0&&margen<0.35)alerts.push({type:'warn',msg:`Margen en riesgo: ${Math.round(margen*100)}% — revisá costos`});
+  if(weekTotal>0&&weekTotal<4)alerts.push({type:'warn',msg:`Bajo volumen esta semana: ${weekTotal} panes`});
+  if(weekTotal>=8)alerts.push({type:'ok',msg:'¡Capacidad máxima alcanzada esta semana!'});
+  const tot=cfg.panes_amort_total||100;
+  if(panesAcum>=tot)alerts.push({type:'ok',msg:'Equipo amortizado — costo baja ₡111/pan'});
+  else if(panesAcum>=90)alerts.push({type:'info',msg:`Equipo casi amortizado — ${tot-panesAcum} panes restantes`});
+  return alerts;
+}
+
+// ── RESUMEN ───────────────────────────────────────────────────
+function renderResumen(){
+  const el=document.getElementById('screen-resumen');
+  let periodOrders,label,canNext=false,from,to;
+  if(resumenView==='semana'){
+    const wk=getOffsetWeekKey(resumenOffset);
+    periodOrders=ordersForWeek(wk);
+    label=resumenOffset===0?'Esta semana':resumenOffset===-1?'Semana pasada':'Hace '+Math.abs(resumenOffset)+' semanas';
+    canNext=resumenOffset<0;
+  } else if(resumenView==='mes'){
+    const r=getMonthRange(resumenOffset);from=r.from;to=r.to;
+    periodOrders=ordersForPeriod(from,to);label=r.label;canNext=resumenOffset<0;
+  } else {
+    const today=new Date().toISOString().slice(0,10);
+    const d=new Date();d.setDate(d.getDate()-30);
+    from=d.toISOString().slice(0,10);to=today;
+    periodOrders=ordersForPeriod(from,to);label='Últimos 30 días';
+  }
+
+  const active=periodOrders.filter(o=>o.stage!=='cancelado');
+  const entregados=periodOrders.filter(o=>o.stage==='entregado');
+  const ing=calcIngresos(active),cos=calcCostos(active),gan=ing-cos;
+  const ingEnt=calcIngresos(entregados);
+  const margen=ing>0?Math.round((gan/ing)*100):0;
+  const wkPanes=resumenView==='semana'?totalPanes(active):0;
+  const alerts=buildAlerts(active,wkPanes);
+
+  // Proyección: promedio últimas 4 semanas × 8
+  const proyOrders=[];
+  for(let i=1;i<=4;i++){const wk=getOffsetWeekKey(-i);proyOrders.push(calcGanancia(ordersForWeek(wk)));}
+  const promSemana=proyOrders.length>0?proyOrders.reduce((a,b)=>a+b,0)/proyOrders.filter(x=>x>0).length:0;
+  const proyMensual=isFinite(promSemana)?promSemana*8:0;
+
+  const navBtnStyle='background:rgba(255,255,255,0.14);border:0.5px solid rgba(255,255,255,0.25);color:var(--crema);border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer;';
+  const navBtnOff='opacity:0.25;background:transparent;border:0.5px solid rgba(255,255,255,0.1);color:var(--crema);border-radius:8px;width:34px;height:34px;font-size:16px;cursor:default;';
+
+  el.innerHTML=`
+    <div class="fin-header">
+      <div style="display:flex;gap:6px;margin-bottom:12px;">
+        ${['semana','mes','30d'].map(v=>`<button onclick="resumenView='${v}';resumenOffset=0;renderResumen()"
+          style="flex:1;padding:5px 4px;border-radius:8px;border:0.5px solid rgba(255,255,255,${resumenView===v?'0.5':'0.2'});background:${resumenView===v?'rgba(239,159,39,0.25)':'transparent'};color:${resumenView===v?'var(--banano)':'rgba(250,238,218,0.6)'};font-family:'Quicksand',sans-serif;font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase;">
+          ${v==='semana'?'Semana':v==='mes'?'Mes':'30 días'}
+        </button>`).join('')}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <span style="font-size:14px;font-weight:700;color:var(--crema);">${label}</span>
+        ${resumenView!=='30d'?`<div style="display:flex;gap:6px;">
+          <button onclick="resumenOffset--;renderResumen()" style="${navBtnStyle}">←</button>
+          <button onclick="resumenOffset++;renderResumen()" ${!canNext?'disabled':''} style="${canNext?navBtnStyle:navBtnOff}">→</button>
+        </div>`:''}
+      </div>
+      <div class="fin-main-val">${fp(gan)}</div>
+      <div class="fin-main-label">Ganancia estimada · Margen ${margen}%</div>
+    </div>
+
+    ${alerts.length>0?alerts.map(a=>`<div class="alert-item ${a.type}"><div class="alert-icon">${a.type==='warn'?'⚠️':a.type==='ok'?'✅':'ℹ️'}</div><div class="alert-text ${a.type}">${a.msg}</div></div>`).join(''):''}
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-val" style="font-size:19px;">${fp(ing)}</div><div class="stat-label">Ingresos</div><div class="stat-sub">${active.length} pedidos</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:19px;">${fp(cos)}</div><div class="stat-label">Costos</div><div class="stat-sub">₡${Math.round(cos/(active.reduce((s,o)=>s+o.qty,0)||1)).toLocaleString('es-CR')}/pan</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:19px;color:var(--hoja);">${fp(ingEnt)}</div><div class="stat-label">Cobrado</div><div class="stat-sub">${entregados.length} entregados</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:19px;color:var(--dorado);">${fp(proyMensual)}</div><div class="stat-label">Proyección mes</div><div class="stat-sub">Prom últimas 4 sem × 8</div></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:12px;font-weight:700;color:var(--text-muted);">Margen</span><span style="font-size:12px;font-weight:700;color:var(--cacao);">${margen}%</span></div>
+      <div class="prog-wrap"><div class="prog-fill" style="width:${Math.max(0,Math.min(100,margen))}%;background:${margen>=45?'var(--hoja)':margen>=35?'var(--amarillo)':'var(--rojo)'}"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:10px;margin-bottom:5px;"><span style="font-size:12px;font-weight:700;color:var(--text-muted);">Panes acumulados</span><span style="font-size:12px;font-weight:700;color:var(--cacao);">${panesAcum} / ${cfg.panes_amort_total||100}</span></div>
+      <div class="prog-wrap"><div class="prog-fill" style="width:${Math.min(100,Math.round(panesAcum/(cfg.panes_amort_total||100)*100))}%;background:var(--dorado);"></div></div>
+    </div>
+
+    <span class="sec-label">Desglose de costos / pan</span>
+    <div class="card">
+      ${[['trad','Tradicional'],['semi','Con Semillas']].map(([id,name])=>{
+        const c=costoPan(id);const p=id==='trad'?(cfg.precio_trad||3500):(cfg.precio_semi||3750);
+        const m=Math.round(((p-c)/p)*100);
+        return`<div class="fin-row">
+          <div><div style="font-size:13px;font-weight:700;color:var(--cacao);">${name}</div>
+            <div style="font-size:11px;color:var(--text-muted);">Costo ${fp(c)} · Precio ${fp(p)}</div>
+          </div>
+          <div style="text-align:right;"><div style="font-size:14px;font-weight:700;color:var(--hoja);">+${fp(p-c)}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${m}% margen</div>
+          </div>
+        </div>`;
+      }).join('')}
+      <div style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5;">
+        Empaque: ${fp(cfg.costo_empaque_base||351)} · Amort: ${fp(panesAcum<(cfg.panes_amort_total||100)?cfg.costo_amort_pan||111:0)}/pan
+      </div>
+    </div>
+
+    <span class="sec-label">Últimos ciclos</span>
+    ${ciclos.slice(0,5).map(c=>{
+      const co=c.ciclo_orders||[];
+      const gan=((c.panes_trad||0)*(cfg.precio_trad||3500)+(c.panes_semi||0)*(cfg.precio_semi||3750))
+               -((c.panes_trad||0)*costoPan('trad')+(c.panes_semi||0)*costoPan('semi'));
+      return`<div class="ciclo-card ${c.estado}" onclick="showScreen('ciclos');setTimeout(()=>openCicloModal('${c.id}'),100);">
+        <div class="ciclo-top">
+          <div><div class="ciclo-fecha">${c.fecha}</div><div class="ciclo-panes">${(c.panes_trad||0)+(c.panes_semi||0)} panes — ${c.panes_trad||0} trad · ${c.panes_semi||0} semi</div></div>
+          <div style="text-align:right;"><div class="ciclo-dia ${c.dia}">${c.dia}</div><div class="ciclo-ganancia ${gan>=0?'':'red'}" style="color:${gan>=0?'var(--hoja)':'var(--rojo)'};">${fp(gan)}</div></div>
+        </div>
+      </div>`;
+    }).join('')||`<div class="empty-state"><div class="e-icon">📅</div><div class="e-title">Sin ciclos</div></div>`}
+  `;
+}
+
+// ── CICLOS ────────────────────────────────────────────────────
+function renderCiclos(){
+  const el=document.getElementById('screen-ciclos');
+  el.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <span class="sec-label" style="margin:0;">Ciclos de producción</span>
+      <button onclick="openNuevoCiclo()" style="background:var(--cacao);color:var(--banano);border:none;border-radius:var(--radius-sm);padding:8px 14px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">+ Nuevo</button>
+    </div>
+    ${ciclos.length===0?`<div class="empty-state"><div class="e-icon">📅</div><div class="e-title">Sin ciclos registrados</div></div>`
+    :ciclos.map(c=>{
+      const panes=(c.panes_trad||0)+(c.panes_semi||0);
+      const ing=(c.panes_trad||0)*(cfg.precio_trad||3500)+(c.panes_semi||0)*(cfg.precio_semi||3750);
+      const cos=(c.panes_trad||0)*costoPan('trad')+(c.panes_semi||0)*costoPan('semi');
+      const gastosCiclo=gastos.filter(g=>g.ciclo_id===c.id).reduce((s,g)=>s+g.precio_total,0);
+      const gan=ing-cos-gastosCiclo;
+      const gastosCount=gastos.filter(g=>g.ciclo_id===c.id).length;
+      return`<div class="ciclo-card ${c.estado}" data-id="${c.id}">
+        <div class="ciclo-top">
+          <div>
+            <div class="ciclo-fecha">${c.fecha}</div>
+            <div class="ciclo-panes">${panes} panes · ${c.panes_trad||0} trad · ${c.panes_semi||0} semi</div>
+            ${gastosCount>0?`<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${gastosCount} gasto${gastosCount>1?'s':''} registrados</div>`:''}
+          </div>
+          <div style="text-align:right;">
+            <div class="ciclo-dia ${c.dia}">${c.dia}</div>
+            <div class="ciclo-ganancia" style="color:${gan>=0?'var(--hoja)':'var(--rojo)'};">${fp(gan)}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${c.estado==='abierto'?'🟡 Abierto':'✅ Cerrado'}</div>
+          </div>
+        </div>
+        ${c.notas?`<div style="font-size:12px;color:var(--text-muted);border-top:0.5px solid #F1EFE8;padding-top:6px;margin-top:4px;">📝 ${c.notas}</div>`:''}
+      </div>`;
+    }).join('')}
+  `;
+  el.querySelectorAll('.ciclo-card[data-id]').forEach(card=>card.addEventListener('click',()=>openCicloModal(card.dataset.id)));
+}
+
+function openNuevoCiclo(){
+  const today=new Date().toISOString().slice(0,10);
+  const dow=new Date().getDay();
+  const defaultDia=dow===2?'martes':dow===4?'jueves':'martes';
+  openModal(`
+    <p class="modal-title">Nuevo ciclo</p>
+    <div style="margin-bottom:14px;"><label class="form-label">Fecha</label>
+      <input class="form-input" id="nc_fecha" type="date" value="${today}" style="margin-bottom:0;">
+    </div>
+    <div style="margin-bottom:14px;"><label class="form-label">Día</label>
+      <select class="form-input" id="nc_dia" style="margin-bottom:0;">
+        <option value="martes" ${defaultDia==='martes'?'selected':''}>Martes</option>
+        <option value="jueves" ${defaultDia==='jueves'?'selected':''}>Jueves</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div><label class="form-label">Panes Trad</label><input class="form-input" id="nc_trad" type="number" min="0" max="8" value="0" style="margin-bottom:0;"></div>
+      <div><label class="form-label">Panes Semi</label><input class="form-input" id="nc_semi" type="number" min="0" max="8" value="0" style="margin-bottom:0;"></div>
+    </div>
+    <div style="margin-bottom:14px;"><label class="form-label">Notas (opcional)</label>
+      <input class="form-input" id="nc_notas" type="text" placeholder="Observaciones..." style="margin-bottom:0;">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal primary" onclick="saveCiclo()">Guardar ciclo</button>
+      <button class="btn-close" onclick="closeModal()">Cancelar</button>
+    </div>
+  `);
+}
+
+async function saveCiclo(){
+  const fecha=document.getElementById('nc_fecha').value;
+  const dia=document.getElementById('nc_dia').value;
+  const panes_trad=parseInt(document.getElementById('nc_trad').value)||0;
+  const panes_semi=parseInt(document.getElementById('nc_semi').value)||0;
+  const notas=document.getElementById('nc_notas').value.trim();
+  if(!fecha){showToast('⚠️ Ingresá la fecha');return;}
+  const btn=event.target;btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    const{data,error}=await sb.from('ciclos').insert({fecha,dia,panes_trad,panes_semi,notas:notas||null}).select().single();
+    if(error)throw error;
+    ciclos.unshift(data);
+    // Actualizar panes acumulados
+    const totalNuevos=panes_trad+panes_semi;
+    if(totalNuevos>0){
+      const newTotal=panesAcum+totalNuevos;
+      await sb.from('panes_acumulados').update({total:newTotal}).eq('id',1);
+      panesAcum=newTotal;updateAmortBadge();
+    }
+    closeModal();showToast('✓ Ciclo guardado');renderCiclos();
+  }catch(e){showToast('Error: '+e.message);btn.disabled=false;btn.textContent='Guardar ciclo';}
+}
+
+function openCicloModal(cicloId){
+  currentCicloId=cicloId;
+  const c=ciclos.find(x=>x.id===cicloId);if(!c)return;
+  const panes=(c.panes_trad||0)+(c.panes_semi||0);
+  const ing=(c.panes_trad||0)*(cfg.precio_trad||3500)+(c.panes_semi||0)*(cfg.precio_semi||3750);
+  const cos=(c.panes_trad||0)*costoPan('trad')+(c.panes_semi||0)*costoPan('semi');
+  const gastoCiclo=gastos.filter(g=>g.ciclo_id===cicloId);
+  const totalGastos=gastoCiclo.reduce((s,g)=>s+g.precio_total,0);
+  const gan=ing-cos-totalGastos;
+  openModal(`
+    <p class="modal-title">${c.fecha} · ${c.dia}</p>
+    <div style="background:${gan>=0?'#d5f5e3':'#fde8e8'};border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;text-align:center;">
+      <div style="font-size:26px;font-weight:700;color:${gan>=0?'var(--hoja)':'var(--rojo)'};">${fp(gan)}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-top:2px;">Ganancia estimada</div>
+    </div>
+    <div class="fin-row"><span class="fin-label">Panes</span><span class="fin-val">${panes} (${c.panes_trad||0} trad · ${c.panes_semi||0} semi)</span></div>
+    <div class="fin-row"><span class="fin-label">Ingresos brutos</span><span class="fin-val gold">${fp(ing)}</span></div>
+    <div class="fin-row"><span class="fin-label">Costos producción</span><span class="fin-val red">-${fp(cos)}</span></div>
+    <div class="fin-row"><span class="fin-label">Gastos adicionales</span><span class="fin-val red">-${fp(totalGastos)}</span></div>
+    <div class="fin-row" style="border-top:1.5px solid var(--border-strong);"><span class="fin-label" style="font-weight:700;color:var(--cacao);">Ganancia neta</span><span class="fin-val" style="color:${gan>=0?'var(--hoja)':'var(--rojo)'};">${fp(gan)}</span></div>
+    ${gastoCiclo.length>0?`<div style="margin-top:14px;"><p style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Gastos de este ciclo</p>
+      ${gastoCiclo.map(g=>`<div class="gasto-row"><div><div class="gasto-item">${g.item}</div><span class="gasto-cat ${g.categoria}">${g.categoria}</span></div><div class="gasto-monto">-${fp(g.precio_total)}</div></div>`).join('')}
+    </div>`:''}
+    ${c.notas?`<div style="font-size:12px;color:var(--text-muted);margin-top:12px;">📝 ${c.notas}</div>`:''}
+    <div class="modal-actions">
+      <button class="btn-modal primary" onclick="openNuevoGastoParaCiclo('${cicloId}')">+ Agregar gasto</button>
+      ${c.estado==='abierto'?`<button class="btn-modal" style="background:#d5f5e3;color:#1e8449;" onclick="cerrarCiclo('${cicloId}')">✓ Cerrar ciclo</button>`:''}
+      <button class="btn-modal danger" onclick="eliminarCiclo('${cicloId}')">🗑 Eliminar ciclo</button>
+      <button class="btn-close" onclick="closeModal()">Cerrar</button>
+    </div>
+  `);
+}
+
+async function cerrarCiclo(id){
+  try{
+    await sb.from('ciclos').update({estado:'cerrado'}).eq('id',id);
+    const i=ciclos.findIndex(c=>c.id===id);if(i>=0)ciclos[i]={...ciclos[i],estado:'cerrado'};
+    closeModal();showToast('✓ Ciclo cerrado');renderCiclos();
+  }catch(e){showToast('Error: '+e.message);}
+}
+
+async function eliminarCiclo(id){
+  if(!confirm('¿Eliminar este ciclo y sus gastos asociados?'))return;
+  try{
+    await sb.from('gastos').delete().eq('ciclo_id',id);
+    await sb.from('ciclos').delete().eq('id',id);
+    ciclos=ciclos.filter(c=>c.id!==id);
+    gastos=gastos.filter(g=>g.ciclo_id!==id);
+    closeModal();showToast('🗑 Ciclo eliminado');renderCiclos();
+  }catch(e){showToast('Error: '+e.message);}
+}
+
+// ── GASTOS ────────────────────────────────────────────────────
+function renderGastos(){
+  const el=document.getElementById('screen-gastos');
+  const totalGastos=gastos.reduce((s,g)=>s+g.precio_total,0);
+  el.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <span class="sec-label" style="margin:0;">Gastos (${gastos.length})</span>
+      <button onclick="openNuevoGasto()" style="background:var(--cacao);color:var(--banano);border:none;border-radius:var(--radius-sm);padding:8px 14px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">+ Nuevo</button>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;">
+        <span style="font-size:13px;font-weight:700;color:var(--text-muted);">Total gastos</span>
+        <span style="font-size:18px;font-weight:700;color:var(--rojo);">-${fp(totalGastos)}</span>
+      </div>
+    </div>
+    ${gastos.length===0?`<div class="empty-state"><div class="e-icon">💸</div><div class="e-title">Sin gastos registrados</div></div>`
+    :gastos.map(g=>`<div class="card" style="margin-bottom:8px;">
+      <div class="gasto-row" style="border:none;padding:0;">
+        <div>
+          <div class="gasto-item">${g.item}</div>
+          <span class="gasto-cat ${g.categoria}">${g.categoria}</span>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">${g.fecha}${g.ciclo_id?' · ciclo':''}${g.notas?' · '+g.notas:''}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="gasto-monto">-${fp(g.precio_total)}</div>
+          ${g.cantidad?`<div style="font-size:11px;color:var(--text-muted);">${g.cantidad} ${g.unidad||''}</div>`:''}
+        </div>
+      </div>
+    </div>`).join('')}
+  `;
+}
+
+function openNuevoGasto(cicloId=null){
+  const today=new Date().toISOString().slice(0,10);
+  openModal(`
+    <p class="modal-title">Nuevo gasto</p>
+    <div style="margin-bottom:14px;"><label class="form-label">Categoría</label>
+      <select class="form-input" id="ng_cat" style="margin-bottom:0;">
+        <option value="ingredientes">Ingredientes</option>
+        <option value="empaque">Empaque</option>
+        <option value="operacion">Operación</option>
+        <option value="equipo">Equipo</option>
+      </select>
+    </div>
+    <div style="margin-bottom:14px;"><label class="form-label">Descripción</label>
+      <input class="form-input" id="ng_item" type="text" placeholder="Ej: Avena Great Value 900g" style="margin-bottom:0;">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div><label class="form-label">Cantidad</label><input class="form-input" id="ng_cant" type="number" placeholder="Ej: 2" style="margin-bottom:0;"></div>
+      <div><label class="form-label">Unidad</label><input class="form-input" id="ng_uni" type="text" placeholder="Ej: bolsas" style="margin-bottom:0;"></div>
+    </div>
+    <div style="margin-bottom:14px;"><label class="form-label">Monto total (₡)</label>
+      <input class="form-input" id="ng_monto" type="number" placeholder="₡0" style="margin-bottom:0;">
+    </div>
+    <div style="margin-bottom:14px;"><label class="form-label">Fecha</label>
+      <input class="form-input" id="ng_fecha" type="date" value="${today}" style="margin-bottom:0;">
+    </div>
+    <div style="margin-bottom:14px;"><label class="form-label">Ciclo asociado (opcional)</label>
+      <select class="form-input" id="ng_ciclo" style="margin-bottom:0;">
+        <option value="">— Sin ciclo —</option>
+        ${ciclos.filter(c=>c.estado==='abierto').map(c=>`<option value="${c.id}" ${cicloId===c.id?'selected':''}>${c.fecha} · ${c.dia}</option>`).join('')}
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal primary" onclick="saveGasto()">Guardar gasto</button>
+      <button class="btn-close" onclick="closeModal()">Cancelar</button>
+    </div>
+  `);
+}
+
+function openNuevoGastoParaCiclo(cicloId){closeModal();setTimeout(()=>openNuevoGasto(cicloId),200);}
+
+async function saveGasto(){
+  const item=document.getElementById('ng_item').value.trim();
+  const monto=parseFloat(document.getElementById('ng_monto').value);
+  if(!item){showToast('⚠️ Ingresá una descripción');return;}
+  if(!monto||monto<=0){showToast('⚠️ Ingresá un monto válido');return;}
+  const btn=event.target;btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    const{data,error}=await sb.from('gastos').insert({
+      categoria:document.getElementById('ng_cat').value,
+      item,
+      cantidad:parseFloat(document.getElementById('ng_cant').value)||null,
+      unidad:document.getElementById('ng_uni').value.trim()||null,
+      precio_total:monto,
+      fecha:document.getElementById('ng_fecha').value,
+      ciclo_id:document.getElementById('ng_ciclo').value||null,
+      notas:null,
+    }).select().single();
+    if(error)throw error;
+    gastos.unshift(data);
+    closeModal();showToast('✓ Gasto guardado');renderGastos();
+  }catch(e){showToast('Error: '+e.message);btn.disabled=false;btn.textContent='Guardar gasto';}
+}
+
+// ── CONFIG SCREEN ─────────────────────────────────────────────
+function renderConfigScreen(){
+  const el=document.getElementById('screen-config');
+  const cfgItems=[
+    ['costo_ing_trad',       'Costo ingredientes Tradicional (₡/pan)'],
+    ['costo_ing_semi',       'Costo ingredientes Con Semillas (₡/pan)'],
+    ['costo_empaque_base',   'Costo empaque base (₡/pan)'],
+    ['costo_amort_pan',      'Amortización equipo (₡/pan)'],
+    ['panes_amort_total',    'Panes para amortizar equipo'],
+    ['precio_trad',          'Precio venta Tradicional (₡)'],
+    ['precio_semi',          'Precio venta Con Semillas (₡)'],
+    ['costo_papel_hornear',  'Papel para hornear (₡/pliego)'],
+    ['costo_papel_encerado', 'Papel encerado (₡/pliego)'],
+    ['costo_bolsa_enfriar',  'Bolsa para enfriar (₡/und)'],
+    ['costo_bolsa_kraft',    'Bolsa kraft (₡/und)'],
+    ['costo_sticker',        'Sticker (₡/und)'],
+  ];
+  el.innerHTML=`
+    <span class="sec-label">Supuestos financieros</span>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">Editá estos valores cuando cambien tus costos. Se usan para calcular ganancias y márgenes.</p>
+    <div class="card">
+      ${cfgItems.map(([clave,label])=>`
+        <div class="fin-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+          <label class="form-label" style="margin:0;">${label}</label>
+          <div style="display:flex;gap:8px;width:100%;align-items:center;">
+            <span style="font-size:14px;font-weight:700;color:var(--text-muted);">₡</span>
+            <input class="form-input" id="cfg_${clave}" type="number" value="${cfg[clave]||0}" style="margin-bottom:0;flex:1;">
+          </div>
+        </div>`).join('')}
+      <button class="btn-primary" style="margin-top:14px;" onclick="saveAllConfig()">Guardar supuestos</button>
+    </div>
+    <span class="sec-label" style="margin-top:16px;">Panes acumulados</span>
+    <div class="card">
+      <div class="fin-row"><span class="fin-label">Total producidos</span><span class="fin-val">${panesAcum} panes</span></div>
+      <div class="fin-row"><span class="fin-label">Amortización</span><span class="fin-val">${panesAcum>=(cfg.panes_amort_total||100)?'✅ Completada':'En curso'}</span></div>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+        <input class="form-input" id="panes_manual" type="number" value="${panesAcum}" style="margin-bottom:0;flex:1;">
+        <button onclick="saveManualPanes()" style="background:var(--cacao);color:var(--banano);border:none;border-radius:var(--radius-sm);padding:11px 14px;font-family:'Quicksand',sans-serif;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;">Actualizar</button>
+      </div>
+    </div>
+    <span class="sec-label" style="margin-top:16px;">Conexión</span>
+    <div class="card">
+      <p style="font-size:12px;font-weight:700;color:var(--cacao);word-break:break-all;margin-bottom:12px;">${loadConfig().url||'No configurado'}</p>
+      <button onclick="if(confirm('¿Borrar credenciales?')){localStorage.removeItem('sb_url_fin');localStorage.removeItem('sb_key_fin');location.reload();}" style="font-family:'Quicksand',sans-serif;font-size:13px;font-weight:700;padding:10px 16px;border-radius:var(--radius-sm);border:0.5px solid var(--border-strong);background:transparent;cursor:pointer;color:var(--cacao);width:100%;">Reconfigurar</button>
+    </div>
+    <div style="text-align:center;margin-top:20px;">
+      <a href="/bananisimo/" style="font-size:13px;font-weight:700;color:var(--dorado);text-decoration:none;">← Volver a app de pedidos</a>
+    </div>
+  `;
+}
+
+async function saveAllConfig(){
+  const btn=event.target;btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    const keys=['costo_ing_trad','costo_ing_semi','costo_empaque_base','costo_amort_pan','panes_amort_total','precio_trad','precio_semi','costo_papel_hornear','costo_papel_encerado','costo_bolsa_enfriar','costo_bolsa_kraft','costo_sticker'];
+    for(const k of keys){
+      const val=parseFloat(document.getElementById('cfg_'+k)?.value)||0;
+      await sb.from('config_finanzas').upsert({clave:k,valor:val,updated_at:new Date().toISOString()});
+      cfg[k]=val;
+    }
+    showToast('✓ Supuestos guardados');btn.disabled=false;btn.textContent='Guardar supuestos';
+    updateAmortBadge();
+  }catch(e){showToast('Error: '+e.message);btn.disabled=false;btn.textContent='Guardar supuestos';}
+}
+
+async function saveManualPanes(){
+  const val=parseInt(document.getElementById('panes_manual').value)||0;
+  try{
+    await sb.from('panes_acumulados').update({total:val}).eq('id',1);
+    panesAcum=val;updateAmortBadge();showToast('✓ Panes actualizados');renderConfigScreen();
+  }catch(e){showToast('Error: '+e.message);}
+}
+
+// ── SERVICE WORKER ────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/bananisimo/finanzas/sw.js',{scope:'/bananisimo/finanzas/'}).then(reg=>{
+      reg.addEventListener('updatefound',()=>{
+        const nw=reg.installing;
+        nw.addEventListener('statechange',()=>{
+          if(nw.state==='installed'&&navigator.serviceWorker.controller)showToast('🍌 Nueva versión disponible — recargá',5000);
+        });
+      });
+    });
+  });
+}
+
+initApp();
+</script>
+</body>
+</html>
