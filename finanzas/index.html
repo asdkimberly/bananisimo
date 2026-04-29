@@ -779,7 +779,10 @@ function openNuevoGasto(cicloId=null){
     <div style="margin-bottom:14px;"><label class="form-label">Ciclo asociado (opcional)</label>
       <select class="form-input" id="ng_ciclo" style="margin-bottom:0;">
         <option value="">— Sin ciclo —</option>
-        ${ciclos.filter(c=>c.estado==='abierto').map(c=>`<option value="${c.id}" ${cicloId===c.id?'selected':''}>${c.fecha} · ${c.dia}</option>`).join('')}
+        ${buildCiclosFromOrders().map(c=>{
+          const dbId=c.dbCiclo?.id||'';
+          return`<option value="${dbId}" data-key="${c.key}" ${cicloId===dbId?'selected':''}>${c.fecha} · ${c.dia} (${c.panesTotal} panes)</option>`;
+        }).join('')}
       </select>
     </div>
     <div class="modal-actions">
@@ -816,7 +819,10 @@ function openEditGasto(gastoId){
     <div style="margin-bottom:14px;"><label class="form-label">Ciclo asociado (opcional)</label>
       <select class="form-input" id="eg_ciclo" style="margin-bottom:0;">
         <option value="">— Sin ciclo —</option>
-        ${ciclos.map(c=>`<option value="${c.id}" ${g.ciclo_id===c.id?'selected':''}>${c.fecha} · ${c.dia}</option>`).join('')}
+        ${buildCiclosFromOrders().map(c=>{
+          const dbId=c.dbCiclo?.id||'';
+          return`<option value="${dbId}" ${g.ciclo_id===dbId?'selected':''}>${c.fecha} · ${c.dia} (${c.panesTotal} panes)</option>`;
+        }).join('')}
       </select>
     </div>
     <div style="margin-bottom:14px;"><label class="form-label">Notas (opcional)</label>
@@ -872,6 +878,25 @@ async function saveGasto(){
   if(!monto||monto<=0){showToast('⚠️ Ingresá un monto válido');return;}
   const btn=event.target;btn.disabled=true;btn.textContent='Guardando...';
   try{
+    const cicloSel=document.getElementById('ng_ciclo');
+    let cicloId=cicloSel.value||null;
+    // Si el ciclo no tiene ID en DB todavía, crearlo
+    if(!cicloId&&cicloSel.selectedIndex>0){
+      const opt=cicloSel.options[cicloSel.selectedIndex];
+      const key=opt.dataset.key;
+      if(key){
+        const ciclosCalc=buildCiclosFromOrders();
+        const cc=ciclosCalc.find(x=>x.key===key);
+        if(cc&&!cc.dbCiclo){
+          const diaVal=cc.cycleId==='mar'||cc.cycleId==='martes'?'martes':'jueves';
+          const{data:newCiclo,error:ec}=await sb.from('ciclos').insert({
+            fecha:cc.fecha,dia:diaVal,estado:'abierto',
+            panes_trad:cc.panesTrad,panes_semi:cc.panesSemi
+          }).select().single();
+          if(!ec&&newCiclo){ciclos.unshift(newCiclo);cicloId=newCiclo.id;}
+        } else if(cc?.dbCiclo){cicloId=cc.dbCiclo.id;}
+      }
+    }
     const{data,error}=await sb.from('gastos').insert({
       categoria:document.getElementById('ng_cat').value,
       item,
@@ -879,7 +904,7 @@ async function saveGasto(){
       unidad:document.getElementById('ng_uni').value.trim()||null,
       precio_total:monto,
       fecha:document.getElementById('ng_fecha').value,
-      ciclo_id:document.getElementById('ng_ciclo').value||null,
+      ciclo_id:cicloId,
       notas:null,
     }).select().single();
     if(error)throw error;
