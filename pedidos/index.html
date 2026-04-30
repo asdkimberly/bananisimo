@@ -318,6 +318,7 @@ let sb=null, products=[], allOrders=[], ingredients=[], allPayments=[], productM
 let currentFilter='recibido', newQty=1, currentOrderId=null, currentIngId=null;
 let currentScreen='dashboard', paymentMethod='sinpe', ingMoveType='compra';
 let dashboardView='week', dashboardWeekOffset=0, dashboardMonthOffset=0, customFrom='', customTo='';
+let shoppingList=[]; // {id, name, unit, stock, min_stock, warn_stock, status}
 let stockTab='ingrediente'; // 'ingrediente' | 'material'
 
 // ── CONFIG ────────────────────────────────────────────────────
@@ -347,7 +348,13 @@ async function initApp(){
     ingredients=r3.data||[];allPayments=r4.data||[];
     productMaterials=r5.data||[];
     hideEl('loadingOverlay');showEl('mainApp');
-    updateCyclePill();updateStockBadge();renderDashboard();
+    updateCyclePill();updateStockBadge();
+    // Inicializar lista de compras con ingredientes ya en alerta
+    shoppingList=ingredients.filter(i=>ingStatus(i)!=='ok').map(i=>({
+      id:i.id,name:i.name,unit:i.unit,stock:i.stock,
+      min_stock:i.min_stock,warn_stock:i.warn_stock,status:ingStatus(i)
+    }));
+    renderDashboard();
     // Realtime
     sb.channel('rt')
       .on('postgres_changes',{event:'*',schema:'public',table:'orders'},p=>{
@@ -499,9 +506,24 @@ function renderDashboard(){
       ${customFields}
     </div>
 
-    ${isNow&&alertas.length>0?`<div class="alert-banner" onclick="showScreen('stock',document.getElementById('nav-stock'))">
-      <div class="alert-banner-title">⚠️ ${alertas.length} item${alertas.length>1?'s':''} requiere${alertas.length>1?'n':''} atención</div>
-      <div class="alert-banner-text">${alertas.slice(0,3).map(i=>i.name).join(' · ')}${alertas.length>3?' · +más':''}</div>
+    ${shoppingList.length>0?`
+    <div style="background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:13px 14px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:700;color:var(--cacao);">🛒 Lista de compras</div>
+        <button onclick="clearShoppingList()" style="font-size:11px;font-weight:700;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:2px 6px;">Limpiar</button>
+      </div>
+      ${shoppingList.map(i=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid #F1EFE8;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:${i.status==='critico'?'var(--rojo)':'var(--amarillo)'};flex-shrink:0;"></div>
+            <span style="font-size:13px;font-weight:600;color:var(--cacao);">${i.name}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:var(--text-muted);">Stock: ${i.stock} ${i.unit}</span>
+            <button onclick="removeFromShoppingList('${i.id}')" style="font-size:14px;background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0 2px;">×</button>
+          </div>
+        </div>`).join('')}
+      <button onclick="showScreen('stock',document.getElementById('nav-stock'))" style="margin-top:10px;width:100%;background:var(--crema);color:var(--cacao);border:0.5px solid var(--border-strong);border-radius:var(--radius-sm);padding:8px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">Ver stock completo →</button>
     </div>`:''}
 
     <div class="stats-grid">
@@ -647,7 +669,6 @@ function renderNew(){
       <input class="form-input" id="fn_notes" type="text" placeholder="Ej: sin maní, dirección especial...">
     </div>
     <div id="fn_total" style="font-size:15px;font-weight:700;color:var(--cacao);text-align:right;margin-bottom:12px;"></div>
-    <div id="stock_warnings"></div>
     <button class="btn-primary" id="btnSaveOrder" onclick="saveOrder()">Guardar pedido</button>
   </div>`;
   updateTotal();
@@ -662,30 +683,6 @@ function updateTotal(){
   const price=parseInt(sel.selectedOptions[0]?.dataset.price||0);
   const t=document.getElementById('fn_total');
   if(t)t.textContent=price?`Total: ${formatPrice(price*newQty)}`:'';
-  // Mostrar advertencias de stock
-  renderStockWarnings(sel.value,newQty);
-}
-function renderStockWarnings(productId,qty){
-  const container=document.getElementById('stock_warnings');
-  if(!container)return;
-  const recipe=productMaterials.filter(pm=>pm.product_id===productId);
-  if(recipe.length===0){container.innerHTML='';return;}
-  const warns=[];
-  for(const pm of recipe){
-    const ing=ingredients.find(i=>i.id===pm.ingredient_id);
-    if(!ing)continue;
-    const needed=pm.qty_per_unit*qty;
-    const after=ing.stock-needed;
-    if(after<ing.min_stock)warns.push({name:ing.name,needed,stock:ing.stock,unit:ing.unit,status:'critico',after});
-    else if(after<ing.warn_stock)warns.push({name:ing.name,needed,stock:ing.stock,unit:ing.unit,status:'alerta',after});
-  }
-  if(warns.length===0){container.innerHTML='';return;}
-  container.innerHTML=`<div style="background:#fdecea;border:0.5px solid #f5c6cb;border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;">
-    <p style="font-size:12px;font-weight:700;color:var(--rojo);margin-bottom:6px;">⚠️ Stock insuficiente después de este pedido</p>
-    ${warns.map(w=>`<div style="font-size:11px;color:#721c24;margin-bottom:2px;">
-      ${w.name}: tenés ${w.stock} ${w.unit}, necesitás ${w.needed} ${w.unit} → quedará ${Math.max(0,w.after).toFixed(1)} ${w.unit} ${w.status==='critico'?'🔴':'🟡'}
-    </div>`).join('')}
-  </div>`;
 }
 // ── STOCK — REBAJO AUTOMÁTICO ─────────────────────────────────
 async function rebajarStock(productId, qty){
@@ -709,6 +706,16 @@ async function rebajarStock(productId, qty){
     if(st!=='ok')alertas.push({name:ingredients[ing].name,status:st,stock:newStock,unit:ingredients[ing].unit});
   }
   updateStockBadge();
+  // Agregar a lista de compras (sin duplicar)
+  alertas.forEach(a=>{
+    if(!shoppingList.find(x=>x.id===a.id)){
+      shoppingList.push(a);
+    } else {
+      // Actualizar stock si ya estaba en lista
+      const idx=shoppingList.findIndex(x=>x.id===a.id);
+      if(idx>=0)shoppingList[idx]={...shoppingList[idx],stock:a.stock};
+    }
+  });
   return alertas;
 }
 
@@ -733,17 +740,9 @@ async function saveOrder(){
     }).select().single();
     if(error)throw error;
     if(newOrder)allOrders.unshift(newOrder);
-    // Rebajar stock según receta
-    const alertas=await rebajarStock(productId,newQty);
-    if(alertas&&alertas.length>0){
-      const criticos=alertas.filter(a=>a.status==='critico');
-      const msg=criticos.length>0
-        ?`⚠️ Stock crítico: ${criticos.map(a=>a.name).join(', ')}`
-        :`⚠️ Stock bajo: ${alertas.map(a=>a.name).join(', ')}`;
-      showToast(msg,5000);
-    } else {
-      showToast('✓ Pedido guardado');
-    }
+    // Rebajar stock según receta — alertas van a lista de compras
+    await rebajarStock(productId,newQty);
+    showToast('✓ Pedido guardado');
     newQty=1;
     // Navegar al dashboard mostrando la semana del pedido recién creado
     const newOrderWeek=getWeekKey(new Date(orderDate+'T12:00:00'));
