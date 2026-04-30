@@ -319,6 +319,7 @@ let currentFilter='recibido', newQty=1, currentOrderId=null, currentIngId=null;
 let currentScreen='dashboard', paymentMethod='sinpe', ingMoveType='compra';
 let dashboardView='week', dashboardWeekOffset=0, dashboardMonthOffset=0, customFrom='', customTo='';
 let shoppingList=[]; // {id, name, unit, stock, min_stock, warn_stock, status}
+let shoppingListOpen=false;
 let stockTab='ingrediente'; // 'ingrediente' | 'material'
 
 // ── CONFIG ────────────────────────────────────────────────────
@@ -507,23 +508,31 @@ function renderDashboard(){
     </div>
 
     ${shoppingList.length>0?`
-    <div style="background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:13px 14px;margin-bottom:14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div style="font-size:13px;font-weight:700;color:var(--cacao);">🛒 Lista de compras</div>
-        <button onclick="clearShoppingList()" style="font-size:11px;font-weight:700;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:2px 6px;">Limpiar</button>
-      </div>
-      ${shoppingList.map(i=>`
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid #F1EFE8;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div style="width:8px;height:8px;border-radius:50%;background:${i.status==='critico'?'var(--rojo)':'var(--amarillo)'};flex-shrink:0;"></div>
-            <span style="font-size:13px;font-weight:600;color:var(--cacao);">${i.name}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:11px;color:var(--text-muted);">Stock: ${i.stock} ${i.unit}</span>
-            <button onclick="removeFromShoppingList('${i.id}')" style="font-size:14px;background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0 2px;">×</button>
-          </div>
-        </div>`).join('')}
-      <button onclick="showScreen('stock',document.getElementById('nav-stock'))" style="margin-top:10px;width:100%;background:var(--crema);color:var(--cacao);border:0.5px solid var(--border-strong);border-radius:var(--radius-sm);padding:8px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">Ver stock completo →</button>
+    <div style="background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:14px;overflow:hidden;">
+      <button onclick="toggleShoppingList()" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:none;border:none;cursor:pointer;font-family:'Quicksand',sans-serif;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:13px;font-weight:700;color:var(--cacao);">🛒 Lista de compras</span>
+          <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:${shoppingList.some(i=>i.status==='critico')?'var(--rojo)':'var(--amarillo)'};color:#fff;">${shoppingList.length}</span>
+        </div>
+        <span id="shopChevron" style="font-size:13px;color:var(--text-muted);transition:transform 0.2s;">${shoppingListOpen?'▲':'▼'}</span>
+      </button>
+      ${shoppingListOpen?`<div style="border-top:0.5px solid #F1EFE8;padding:0 14px;">
+        ${[...shoppingList].sort((a,b)=>a.status==='critico'?-1:b.status==='critico'?1:0).map(i=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid #F1EFE8;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${i.status==='critico'?'var(--rojo)':'var(--amarillo)'}"></div>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--cacao);">${i.name}</div>
+                <div style="font-size:11px;color:var(--text-muted);">Stock: ${i.stock} ${i.unit} · Mín: ${i.min_stock} ${i.unit}</div>
+              </div>
+            </div>
+            <button onclick="removeFromShoppingList('${i.id}')" style="font-size:18px;background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0 2px;flex-shrink:0;">×</button>
+          </div>`).join('')}
+        <div style="display:flex;gap:8px;padding:10px 0;">
+          <button onclick="showScreen('stock',document.getElementById('nav-stock'))" style="flex:1;background:var(--crema);color:var(--cacao);border:0.5px solid var(--border-strong);border-radius:var(--radius-sm);padding:8px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">Ver stock →</button>
+          <button onclick="clearShoppingList()" style="background:none;border:0.5px solid var(--border-strong);border-radius:var(--radius-sm);padding:8px 12px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:700;cursor:pointer;color:var(--text-muted);">Limpiar</button>
+        </div>
+      </div>`:''}
     </div>`:''}
 
     <div class="stats-grid">
