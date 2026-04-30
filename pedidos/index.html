@@ -509,7 +509,7 @@ function renderDashboard(){
 
     ${shoppingList.length>0?`
     <div style="background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:14px;overflow:hidden;">
-      <button onclick="toggleShoppingList()" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:none;border:none;cursor:pointer;font-family:'Quicksand',sans-serif;">
+      <button id="shopToggleBtn" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:none;border:none;cursor:pointer;font-family:'Quicksand',sans-serif;">
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:13px;font-weight:700;color:var(--cacao);">🛒 Lista de compras</span>
           <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:${shoppingList.some(i=>i.status==='critico')?'var(--rojo)':'var(--amarillo)'};color:#fff;">${shoppingList.length}</span>
@@ -575,6 +575,8 @@ function renderDashboard(){
       :active.filter(o=>isNow?['recibido','horneado','enfriado','empacado'].includes(o.stage||'recibido'):true).map(o=>orderCardHTML(o)).join('')}
   `;
   el.querySelectorAll('.order-card').forEach(card=>card.addEventListener('click',()=>openOrderModal(card.dataset.id)));
+  const shopBtn=el.querySelector('#shopToggleBtn');
+  if(shopBtn)shopBtn.addEventListener('click',()=>{shoppingListOpen=!shoppingListOpen;renderDashboard();});
 }
 
 
