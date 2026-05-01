@@ -351,10 +351,7 @@ async function initApp(){
     hideEl('loadingOverlay');showEl('mainApp');
     updateCyclePill();updateStockBadge();
     // Inicializar lista de compras con ingredientes ya en alerta
-    shoppingList=ingredients.filter(i=>ingStatus(i)!=='ok').map(i=>({
-      id:i.id,name:i.name,unit:i.unit,stock:i.stock,
-      min_stock:i.min_stock,warn_stock:i.warn_stock,status:ingStatus(i)
-    }));
+    checkShoppingList();
     renderDashboard();
     // Realtime
     sb.channel('rt')
@@ -523,7 +520,7 @@ function renderDashboard(){
               <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${i.status==='critico'?'var(--rojo)':'var(--amarillo)'}"></div>
               <div>
                 <div style="font-size:13px;font-weight:600;color:var(--cacao);">${i.name}</div>
-                <div style="font-size:11px;color:var(--text-muted);">Stock: ${i.stock} ${i.unit} · Mín: ${i.min_stock} ${i.unit}</div>
+                <div style="font-size:11px;color:var(--text-muted);">Stock: ${i.stock} ${i.unit}${i.projStock!==undefined&&i.projStock!==i.stock?' → '+Math.max(0,i.projStock).toFixed(1)+' proy.':''} · Mín: ${i.min_stock} ${i.unit}</div>
               </div>
             </div>
             <button onclick="removeFromShoppingList('${i.id}')" style="font-size:18px;background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0 2px;flex-shrink:0;">×</button>
@@ -695,6 +692,39 @@ function updateTotal(){
   const t=document.getElementById('fn_total');
   if(t)t.textContent=price?`Total: ${formatPrice(price*newQty)}`:'';
 }
+// ── STOCK — LISTA DE COMPRAS PROYECTADA ──────────────────────
+function checkShoppingList(){
+  // Sumar consumo proyectado de pedidos que aún no están horneados
+  const pendientes=allOrders.filter(o=>['recibido'].includes(o.stage||'recibido'));
+  // Calcular stock disponible proyectado por ingrediente
+  const proyStock={};
+  ingredients.forEach(i=>{proyStock[i.id]=i.stock;});
+  pendientes.forEach(o=>{
+    const recipe=productMaterials.filter(pm=>pm.product_id===o.product_id);
+    recipe.forEach(pm=>{
+      if(proyStock[pm.ingredient_id]!==undefined){
+        proyStock[pm.ingredient_id]-=pm.qty_per_unit*o.qty;
+      }
+    });
+  });
+  // Detectar alertas según stock proyectado
+  ingredients.forEach(i=>{
+    const proj=proyStock[i.id]??i.stock;
+    let status=null;
+    if(proj<=i.min_stock) status='critico';
+    else if(proj<=i.warn_stock) status='alerta';
+    if(status){
+      const existing=shoppingList.findIndex(x=>x.id===i.id);
+      const item={id:i.id,name:i.name,unit:i.unit,stock:i.stock,projStock:Math.max(0,proj),min_stock:i.min_stock,warn_stock:i.warn_stock,status};
+      if(existing>=0) shoppingList[existing]=item;
+      else shoppingList.push(item);
+    } else {
+      // Si ya no hay alerta proyectada, quitar de la lista
+      shoppingList=shoppingList.filter(x=>x.id!==i.id);
+    }
+  });
+}
+
 // ── STOCK — REBAJO AUTOMÁTICO ─────────────────────────────────
 async function rebajarStock(productId, qty){
   // Obtener receta del producto
@@ -717,16 +747,8 @@ async function rebajarStock(productId, qty){
     if(st!=='ok')alertas.push({name:ingredients[ing].name,status:st,stock:newStock,unit:ingredients[ing].unit});
   }
   updateStockBadge();
-  // Agregar a lista de compras (sin duplicar)
-  alertas.forEach(a=>{
-    if(!shoppingList.find(x=>x.id===a.id)){
-      shoppingList.push(a);
-    } else {
-      // Actualizar stock si ya estaba en lista
-      const idx=shoppingList.findIndex(x=>x.id===a.id);
-      if(idx>=0)shoppingList[idx]={...shoppingList[idx],stock:a.stock};
-    }
-  });
+  // Recalcular lista de compras con nuevo stock
+  checkShoppingList();
   return alertas;
 }
 
@@ -751,8 +773,8 @@ async function saveOrder(){
     }).select().single();
     if(error)throw error;
     if(newOrder)allOrders.unshift(newOrder);
-    // Rebajar stock según receta — alertas van a lista de compras
-    await rebajarStock(productId,newQty);
+    // Verificar stock proyectado para pedidos pendientes → lista de compras
+    checkShoppingList();
     showToast('✓ Pedido guardado');
     newQty=1;
     // Navegar al dashboard mostrando la semana del pedido recién creado
@@ -855,6 +877,10 @@ async function avanzarStage(){
     if(error)throw error;
     const oi=allOrders.findIndex(x=>x.id===currentOrderId);
     if(oi>=0)allOrders[oi]={...allOrders[oi],stage:next};
+    // Rebajar stock al hornear
+    if(next==='horneado'){
+      await rebajarStock(o.product_id,o.qty);
+    }
     closeModal();showToast(`✓ ${STAGE_LABEL[next]}`);rerenderCurrent();
   }catch(e){showError('Error: '+e.message);btn.disabled=false;btn.textContent='→ Marcar como '+STAGE_LABEL[next];}
 }
