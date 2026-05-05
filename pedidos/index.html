@@ -566,10 +566,11 @@ function renderDashboard(){
       }).join('')}
     </div>
 
-    <span class="sec-label" style="margin-top:14px;">${isNow?'Pedidos activos':'Pedidos del período'}</span>
-    ${active.filter(o=>isNow?o.stage!=='entregado':true).length===0
-      ?`<div class="empty-state"><div class="e-icon">📋</div><div class="e-title">Sin pedidos</div><div class="e-text">${isNow?'Usá el botón + para agregar.':'No hay pedidos en este período.'}</div></div>`
-      :active.filter(o=>isNow?['recibido','horneado','enfriado','empacado'].includes(o.stage||'recibido'):true).map(o=>orderCardHTML(o)).join('')}
+
+    <span class="sec-label" style="margin-top:14px;">Pedidos del período</span>
+    ${active.length===0
+      ?`<div class="empty-state"><div class="e-icon">📋</div><div class="e-title">Sin pedidos</div><div class="e-text">Usá el botón + para agregar.</div></div>`
+      :active.map(o=>orderCardHTML(o)).join('')}
   `;
   el.querySelectorAll('.order-card').forEach(card=>card.addEventListener('click',()=>openOrderModal(card.dataset.id)));
   const shopBtn=el.querySelector('#shopToggleBtn');
