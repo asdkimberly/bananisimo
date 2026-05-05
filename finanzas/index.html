@@ -221,7 +221,8 @@ async function initApp(){
     if(r1.error)throw r1.error;
     orders=r1.data||[];ciclos=r2.data||[];gastos=r3.data||[];
     cfg={};(r4.data||[]).forEach(c=>cfg[c.clave]=c.valor);
-    panesAcum=(r5.data?.total)||0;
+    // Calcular panes acumulados desde pedidos entregados (fuente de verdad)
+    panesAcum=orders.filter(o=>o.stage==='entregado').reduce((s,o)=>s+(o.qty||0),0);
     payments=r6.data||[];
     document.getElementById('loadingOverlay').classList.add('hidden');
     document.getElementById('mainApp').style.display='block';
