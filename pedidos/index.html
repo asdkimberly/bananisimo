@@ -418,6 +418,22 @@ function weekOrders(wk){
     return getWeekKey(d.slice(0,10))===wk;
   });
 }
+// Pedidos para dashboard: semana actual + pendientes de semanas anteriores
+function dashboardOrders(wk){
+  const thisWeek=allOrders.filter(o=>{
+    const d=o.order_date||o.week_key||o.created_at.slice(0,10);
+    return getWeekKey(d.slice(0,10))===wk;
+  });
+  // Agregar pedidos activos (no cancelados, no entregados) de semanas anteriores
+  const pending=allOrders.filter(o=>{
+    const d=o.order_date||o.week_key||o.created_at.slice(0,10);
+    if(getWeekKey(d.slice(0,10))===wk)return false; // ya incluido
+    return o.stage!=='cancelado'&&o.stage!=='entregado';
+  });
+  // Combinar sin duplicar
+  const ids=new Set(thisWeek.map(o=>o.id));
+  return [...thisWeek,...pending.filter(o=>!ids.has(o.id))];
+}
 function activeOrders(orders){return orders.filter(o=>o.stage!=='cancelado');}
 function orderPayments(id){return allPayments.filter(p=>p.order_id===id);}
 function orderPaidAmount(id){return orderPayments(id).reduce((s,p)=>s+p.amount,0);}
@@ -448,7 +464,8 @@ function renderDashboard(){
   let viewOrders, viewLabel, canNext=false;
   if(dashboardView==='week'){
     const wk=getOffsetWeekKey(dashboardWeekOffset);
-    viewOrders=weekOrders(wk);
+    // Semana actual: incluir también pedidos activos de semanas anteriores
+    viewOrders=dashboardWeekOffset===0?dashboardOrders(wk):weekOrders(wk);
     viewLabel=dashboardWeekOffset===0?'Esta semana':dashboardWeekOffset===-1?'Semana pasada':'Hace '+Math.abs(dashboardWeekOffset)+' semanas';
     canNext=dashboardWeekOffset<0;
   } else if(dashboardView==='month'){
