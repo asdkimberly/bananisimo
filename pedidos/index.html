@@ -482,7 +482,7 @@ function renderDashboard(){
   const totalPanes=active.reduce((s,o)=>s+o.qty,0);
   const pct=Math.min(100,Math.round((totalPanes/MAX_SEMANA)*100));
   const slots=Array.from({length:MAX_SEMANA},(_,i)=>i<totalPanes);
-  const ingresos=viewOrders.filter(o=>o.stage==='entregado').reduce((s,o)=>s+o.qty*o.price,0);
+  const cobrado=active.reduce((s,o)=>s+orderPaidAmount(o.id),0);
   const porCobrar=active.reduce((s,o)=>s+Math.max(0,o.qty*o.price-orderPaidAmount(o.id)),0);
   const alertas=ingredients.filter(i=>ingStatus(i)!=='ok');
   const isNow=dashboardView==='week'&&dashboardWeekOffset===0;
@@ -552,7 +552,7 @@ function renderDashboard(){
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-val">${totalPanes}<span style="font-size:13px;color:var(--text-muted);">/${dashboardView==='week'?MAX_SEMANA:'∞'}</span></div><div class="stat-label">Panes</div><div class="stat-sub">${active.length} pedidos</div></div>
       <div class="stat-card"><div class="stat-val">${viewOrders.filter(o=>o.stage==='entregado').length}</div><div class="stat-label">Entregados</div><div class="stat-sub">${viewOrders.filter(o=>o.stage==='cancelado').length} cancelados</div></div>
-      <div class="stat-card"><div class="stat-val" style="font-size:19px;color:var(--hoja);">${formatPrice(ingresos)}</div><div class="stat-label">Cobrado</div><div class="stat-sub">Entregados</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:19px;color:var(--hoja);">${formatPrice(cobrado)}</div><div class="stat-label">Cobrado</div><div class="stat-sub">Todos los stages</div></div>
       <div class="stat-card"><div class="stat-val" style="font-size:19px;color:var(--rojo);">${formatPrice(porCobrar)}</div><div class="stat-label">Por cobrar</div><div class="stat-sub">Pendiente</div></div>
     </div>
 
