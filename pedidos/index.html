@@ -540,7 +540,7 @@ function renderDashboard(){
                 <div style="font-size:11px;color:var(--text-muted);">Stock: ${i.stock} ${i.unit}${i.projStock!==undefined&&i.projStock!==i.stock?' → '+Math.max(0,i.projStock).toFixed(1)+' proy.':''} · Mín: ${i.min_stock} ${i.unit}</div>
               </div>
             </div>
-            <button onclick="removeFromShoppingList('${i.id}')" style="font-size:18px;background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0 2px;flex-shrink:0;">×</button>
+            <button data-remove-id="${i.id}" style="font-size:18px;background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0 2px;flex-shrink:0;">×</button>
           </div>`).join('')}
         <div style="display:flex;gap:8px;padding:10px 0;">
           <button onclick="showScreen('stock',document.getElementById('nav-stock'))" style="flex:1;background:var(--crema);color:var(--cacao);border:0.5px solid var(--border-strong);border-radius:var(--radius-sm);padding:8px;font-family:'Quicksand',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">Ver stock →</button>
@@ -592,6 +592,9 @@ function renderDashboard(){
   el.querySelectorAll('.order-card').forEach(card=>card.addEventListener('click',()=>openOrderModal(card.dataset.id)));
   const shopBtn=el.querySelector('#shopToggleBtn');
   if(shopBtn)shopBtn.addEventListener('click',()=>{shoppingListOpen=!shoppingListOpen;renderDashboard();});
+  el.querySelectorAll('[data-remove-id]').forEach(btn=>btn.addEventListener('click',e=>{
+    e.stopPropagation();removeFromShoppingList(btn.dataset.removeId);
+  }));
 }
 
 
