@@ -314,7 +314,7 @@ const STAGE_COLOR={
 };
 
 // ── ESTADO ────────────────────────────────────────────────────
-let sb=null, products=[], allOrders=[], ingredients=[], allPayments=[], productMaterials=[];
+let sb=null, products=[], allOrders=[], ingredients=[], allPayments=[], productMaterials=[], clients=[], orderItems=[];
 let currentFilter='recibido', newQty=1, currentOrderId=null, currentIngId=null;
 let currentScreen='dashboard', paymentMethod='sinpe', ingMoveType='compra';
 let dashboardView='week', dashboardWeekOffset=0, dashboardMonthOffset=0, customFrom='', customTo='';
@@ -336,18 +336,20 @@ async function initApp(){
   if(!url||!key){hideEl('loadingOverlay');showEl('configScreen');return;}
   try{
     sb=supabase.createClient(url,key);
-    const[r1,r2,r3,r4,r5]=await Promise.all([
+    const[r1,r2,r3,r4,r5,r6,r7]=await Promise.all([
       sb.from('products').select('*').eq('active',true).order('price'),
       sb.from('orders').select('*').order('created_at',{ascending:false}).limit(500),
       sb.from('ingredients').select('*').order('name'),
       sb.from('payments').select('*').order('created_at',{ascending:false}),
       sb.from('product_materials').select('*'),
+      sb.from('clients').select('*').order('name'),
+      sb.from('order_items').select('*'),
     ]);
     if(r1.error)throw r1.error;
     if(r2.error)throw r2.error;
     products=r1.data||[];allOrders=r2.data||[];
     ingredients=r3.data||[];allPayments=r4.data||[];
-    productMaterials=r5.data||[];
+    productMaterials=r5.data||[];clients=r6.data||[];orderItems=r7.data||[];
     hideEl('loadingOverlay');showEl('mainApp');
     updateCyclePill();updateStockBadge();
     // Inicializar lista de compras con ingredientes ya en alerta
@@ -436,6 +438,22 @@ function dashboardOrders(wk){
 }
 function activeOrders(orders){return orders.filter(o=>o.stage!=='cancelado');}
 function orderPayments(id){return allPayments.filter(p=>p.order_id===id);}
+function getOrderItems(orderId){return orderItems.filter(i=>i.order_id===orderId);}
+function orderTotal(o){
+  const items=getOrderItems(o.id);
+  if(items.length>0)return items.reduce((s,i)=>s+i.qty*i.price,0);
+  return (o.qty||0)*(o.price||0); // fallback legacy
+}
+function orderQtyTotal(o){
+  const items=getOrderItems(o.id);
+  if(items.length>0)return items.reduce((s,i)=>s+i.qty,0);
+  return o.qty||0;
+}
+function findClient(name,phone){
+  if(!name)return null;
+  const n=name.trim().toLowerCase();
+  return clients.find(c=>c.name.toLowerCase()===n||(phone&&c.phone&&c.phone.replace(/\D/g,'')===phone.replace(/\D/g,'')));
+}
 function orderPaidAmount(id){return orderPayments(id).reduce((s,p)=>s+p.amount,0);}
 function ingStatus(i){if(i.stock<=i.min_stock)return'critico';if(i.stock<=i.warn_stock)return'alerta';return'ok';}
 function formatPrice(n){return'₡'+Number(n||0).toLocaleString('es-CR');}
@@ -620,7 +638,7 @@ function setFilter(f){currentFilter=f;renderOrders();}
 function orderCardHTML(o){
   const prod=products.find(p=>p.id===o.product_id);
   const cycle=CYCLES.find(c=>c.id===o.cycle_id);
-  const total=o.qty*o.price;
+  const total=orderTotal(o);
   const paid=orderPaidAmount(o.id);
   const stage=o.stage||'recibido';
   const sc=STAGE_COLOR[stage]||STAGE_COLOR.recibido;
@@ -644,7 +662,7 @@ function orderCardHTML(o){
       <div class="order-avatar">${getInitials(o.client_name)}</div>
       <div class="order-body">
         <div class="order-name">${o.client_name}</div>
-        <div class="order-detail">${prod?prod.name:''} × ${o.qty}<span class="order-cycle-badge">${cycle?cycle.label:o.cycle_id}</span></div>
+        <div class="order-detail">${(()=>{const items=getOrderItems(o.id);return items.length>0?items.map(i=>{const p=products.find(x=>x.id===i.product_id);return(p?p.name.replace('Pan de banano ',''):'?')+' ×'+i.qty;}).join(' · '):(prod?prod.name:'')+' ×'+o.qty;})()}<span class="order-cycle-badge">${cycle?cycle.label:o.cycle_id}</span></div>
         <div class="order-tags">
           <span class="tag" style="background:${sc.bg};color:${sc.color};">${STAGE_ICON[stage]} ${STAGE_LABEL[stage]}</span>
           ${payTag}${o.notes?'<span class="tag tag-prod">nota</span>':''}
@@ -657,61 +675,122 @@ function orderCardHTML(o){
 }
 
 // ── NEW ORDER ─────────────────────────────────────────────────
+let newItems=[]; // [{product_id, qty, price, name}]
+
 function renderNew(){
   const today=new Date().toISOString().slice(0,10);
   const selDate=document.getElementById('fn_date')?document.getElementById('fn_date').value:today;
   const dateVal=selDate||today;
-  const wk=getWeekKey(new Date(dateVal+'T12:00:00'));
-  const totalPanes=activeOrders(weekOrders(wk)).reduce((s,o)=>s+o.qty,0);
+  const wk=getWeekKey(dateVal);
+  const totalPanes=activeOrders(weekOrders(wk)).reduce((s,o)=>s+orderQtyTotal(o),0);
   const available=MAX_SEMANA-totalPanes;
+  const newItemsTotal=newItems.reduce((s,i)=>s+i.qty,0);
   const el=document.getElementById('screen-new');
-  newQty=Math.min(newQty,Math.max(1,available));
+  if(!newItems.length)newItems=[{product_id:products[0]?.id,qty:1,price:products[0]?.price||0,name:products[0]?.name||''}];
+
+  // Sugerencias de clientes
+  const clientSuggestions=clients.slice(0,8).map(c=>
+    `<option value="${c.name}" data-phone="${c.phone||''}">`
+  ).join('');
+
   el.innerHTML=`<div class="form-card">
     <p class="form-title">Nuevo pedido</p>
     <div style="background:var(--crema);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:16px;font-size:12px;font-weight:700;color:var(--cacao);">
-      🍞 Semana ${wk} · <span style="color:${available<=0?'var(--rojo)':'var(--dorado)'};">${available<=0?'Sin disponibilidad':available+' de '+MAX_SEMANA+' disponibles'}</span>
+      🍞 Semana ${wk} · <span style="color:${available-newItemsTotal<=0?'var(--rojo)':'var(--dorado)'};">${Math.max(0,available-newItemsTotal)} de ${MAX_SEMANA} disponibles</span>
     </div>
     <div class="form-group"><label class="form-label">Fecha del pedido</label>
-      <input class="form-input" id="fn_date" type="date" value="${dateVal}" max="${today}" onchange="renderNew()">
+      <input class="form-input" id="fn_date" type="date" value="${dateVal}" max="${today}">
     </div>
+    <datalist id="client_list">${clientSuggestions}</datalist>
     <div class="form-group"><label class="form-label">Nombre del cliente</label>
-      <input class="form-input" id="fn_name" type="text" placeholder="Ej: María Rodríguez" autocomplete="off">
+      <input class="form-input" id="fn_name" type="text" list="client_list" placeholder="Ej: María Rodríguez" autocomplete="off">
     </div>
     <div class="form-group"><label class="form-label">WhatsApp (opcional)</label>
       <input class="form-input" id="fn_phone" type="tel" placeholder="8888-8888">
     </div>
-    <div class="form-group"><label class="form-label">Producto</label>
-      <select class="form-input" id="fn_product" onchange="updateTotal()">${products.map(p=>`<option value="${p.id}" data-price="${p.price}">${p.name} — ${formatPrice(p.price)}</option>`).join('')}</select>
-    </div>
-    <div class="form-group"><label class="form-label">Cantidad</label>
-      <div class="qty-row">
-        <button class="qty-btn" onclick="changeQty(-1)">−</button>
-        <div class="qty-display" id="fn_qty">${newQty}</div>
-        <button class="qty-btn" onclick="changeQty(1)">+</button>
-        <span style="font-size:12px;color:var(--text-muted);font-weight:600;">loaf${newQty>1?'s':''}</span>
-      </div>
-    </div>
     <div class="form-group"><label class="form-label">Ciclo de entrega</label>
       <select class="form-input" id="fn_cycle">${CYCLES.map(c=>`<option value="${c.id}">Entrega ${c.entrega} (hornea ${c.label})</option>`).join('')}</select>
     </div>
+
+    <label class="form-label">Productos del pedido</label>
+    <div id="items_list">
+      ${newItems.map((item,idx)=>`
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+          <select class="form-input" data-item="${idx}" data-field="product" style="flex:1;margin:0;">
+            ${products.map(p=>`<option value="${p.id}" data-price="${p.price}" ${p.id===item.product_id?'selected':''}>${p.name}</option>`).join('')}
+          </select>
+          <button class="qty-btn" data-item="${idx}" data-action="minus" style="width:34px;height:34px;font-size:18px;">−</button>
+          <span style="font-size:16px;font-weight:700;min-width:20px;text-align:center;">${item.qty}</span>
+          <button class="qty-btn" data-item="${idx}" data-action="plus" style="width:34px;height:34px;font-size:18px;">+</button>
+          ${newItems.length>1?`<button data-item="${idx}" data-action="remove" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);padding:0 4px;">×</button>`:''}
+        </div>`).join('')}
+    </div>
+    <button id="btnAddItem" style="width:100%;background:transparent;border:0.5px dashed var(--border-strong);border-radius:var(--radius-sm);padding:9px;font-family:'Quicksand',sans-serif;font-size:13px;font-weight:700;color:var(--dorado);cursor:pointer;margin-bottom:14px;">+ Agregar otro producto</button>
+
     <div class="form-group"><label class="form-label">Notas (opcional)</label>
       <input class="form-input" id="fn_notes" type="text" placeholder="Ej: sin maní, dirección especial...">
     </div>
-    <div id="fn_total" style="font-size:15px;font-weight:700;color:var(--cacao);text-align:right;margin-bottom:12px;"></div>
-    <button class="btn-primary" id="btnSaveOrder" onclick="saveOrder()">Guardar pedido</button>
+    <div id="fn_total" style="font-size:16px;font-weight:700;color:var(--cacao);text-align:right;margin-bottom:12px;"></div>
+    <button class="btn-primary" id="btnSaveOrder">Guardar pedido</button>
   </div>`;
+
+  // Listeners post-render
+  document.getElementById('fn_date').addEventListener('change',renderNew);
+  document.getElementById('fn_name').addEventListener('change',()=>autoFillClient());
+  document.getElementById('btnAddItem').addEventListener('click',()=>{
+    newItems.push({product_id:products[0]?.id,qty:1,price:products[0]?.price||0,name:products[0]?.name||''});
+    renderNew();preserveFormFields();
+  });
+  document.getElementById('btnSaveOrder').addEventListener('click',saveOrder);
+  document.querySelectorAll('[data-item][data-action]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const idx=parseInt(btn.dataset.item);
+      const action=btn.dataset.action;
+      const avail=MAX_SEMANA-totalPanes;
+      const curTotal=newItems.reduce((s,i)=>s+i.qty,0);
+      if(action==='plus'&&curTotal<avail)newItems[idx].qty++;
+      else if(action==='minus'&&newItems[idx].qty>1)newItems[idx].qty--;
+      else if(action==='remove')newItems.splice(idx,1);
+      renderNew();preserveFormFields();
+    });
+  });
+  document.querySelectorAll('[data-item][data-field="product"]').forEach(sel=>{
+    sel.addEventListener('change',()=>{
+      const idx=parseInt(sel.dataset.item);
+      const opt=sel.selectedOptions[0];
+      newItems[idx].product_id=sel.value;
+      newItems[idx].price=parseInt(opt.dataset.price||0);
+      newItems[idx].name=opt.text.split(' —')[0];
+      updateTotal();
+    });
+  });
   updateTotal();
 }
-function changeQty(delta){
-  const avail=MAX_SEMANA-activeOrders(weekOrders(getWeekKey())).reduce((s,o)=>s+o.qty,0);
-  newQty=Math.max(1,Math.min(avail,newQty+delta));
-  document.getElementById('fn_qty').textContent=newQty;updateTotal();
+
+function preserveFormFields(){
+  // Preservar nombre, teléfono, notas al re-renderizar
+  const name=document.getElementById('fn_name')?.value;
+  const phone=document.getElementById('fn_phone')?.value;
+  const notes=document.getElementById('fn_notes')?.value;
+  setTimeout(()=>{
+    if(name&&document.getElementById('fn_name'))document.getElementById('fn_name').value=name;
+    if(phone&&document.getElementById('fn_phone'))document.getElementById('fn_phone').value=phone;
+    if(notes&&document.getElementById('fn_notes'))document.getElementById('fn_notes').value=notes;
+  },0);
 }
+
+function autoFillClient(){
+  const nameEl=document.getElementById('fn_name');
+  const phoneEl=document.getElementById('fn_phone');
+  if(!nameEl||!phoneEl)return;
+  const client=clients.find(c=>c.name.toLowerCase()===nameEl.value.trim().toLowerCase());
+  if(client&&client.phone&&!phoneEl.value)phoneEl.value=client.phone;
+}
+
 function updateTotal(){
-  const sel=document.getElementById('fn_product');if(!sel)return;
-  const price=parseInt(sel.selectedOptions[0]?.dataset.price||0);
+  const total=newItems.reduce((s,i)=>s+i.qty*i.price,0);
   const t=document.getElementById('fn_total');
-  if(t)t.textContent=price?`Total: ${formatPrice(price*newQty)}`:'';
+  if(t)t.textContent=total?`Total: ${formatPrice(total)}`:'';
 }
 // ── STOCK — LISTA DE COMPRAS PROYECTADA ──────────────────────
 function checkShoppingList(){
@@ -776,25 +855,51 @@ async function rebajarStock(productId, qty){
 async function saveOrder(){
   const name=document.getElementById('fn_name').value.trim();
   const phone=document.getElementById('fn_phone').value.trim();
-  const productId=document.getElementById('fn_product').value;
   const cycleId=document.getElementById('fn_cycle').value;
   const notes=document.getElementById('fn_notes').value.trim();
   if(!name){showToast('⚠️ Ingresá el nombre del cliente');return;}
-  const prod=products.find(p=>p.id===productId);
+  if(!newItems.length){showToast('⚠️ Agregá al menos un producto');return;}
   const btn=document.getElementById('btnSaveOrder');
   btn.disabled=true;btn.innerHTML='<div class="spinner" style="width:18px;height:18px;border-width:2px;border-color:var(--banano);border-top-color:transparent;"></div> Guardando...';
   try{
-    const dateEl=document.getElementById('fn_date');
-    const orderDate=dateEl?dateEl.value:new Date().toISOString().slice(0,10);
-    const weekKey=getWeekKey(new Date(orderDate+'T12:00:00'));
+    const orderDate=document.getElementById('fn_date')?.value||new Date().toISOString().slice(0,10);
+    const weekKey=getWeekKey(orderDate);
+    const totalQty=newItems.reduce((s,i)=>s+i.qty,0);
+    const totalPrice=Math.round(newItems.reduce((s,i)=>s+i.qty*i.price,0)/totalQty); // precio promedio para legacy
+    const firstItem=newItems[0];
+
+    // Upsert cliente
+    let clientId=null;
+    const existing=clients.find(c=>c.name.toLowerCase()===name.toLowerCase());
+    if(existing){
+      clientId=existing.id;
+      if(phone&&phone!==existing.phone){
+        await sb.from('clients').update({phone,updated_at:new Date().toISOString()}).eq('id',clientId);
+        const ci=clients.findIndex(c=>c.id===clientId);
+        if(ci>=0)clients[ci]={...clients[ci],phone};
+      }
+    } else if(name){
+      const{data:nc}=await sb.from('clients').insert({name,phone:phone||null}).select().single();
+      if(nc){clients.unshift(nc);clientId=nc.id;}
+    }
+
+    // Crear order (usa primer producto para campos legacy)
     const{data:newOrder,error}=await sb.from('orders').insert({
-      client_name:name,client_phone:phone||null,product_id:productId,
-      qty:newQty,price:prod.price,cycle_id:cycleId,notes:notes||null,
-      stage:'recibido',week_key:weekKey,order_date:orderDate
+      client_name:name,client_phone:phone||null,
+      product_id:firstItem.product_id,qty:totalQty,price:firstItem.price,
+      cycle_id:cycleId,notes:notes||null,
+      stage:'recibido',week_key:weekKey,order_date:orderDate,
+      client_id:clientId,
     }).select().single();
     if(error)throw error;
-    if(newOrder)allOrders.unshift(newOrder);
-    // Verificar stock proyectado para pedidos pendientes → lista de compras
+
+    // Crear order_items
+    const itemsToInsert=newItems.map(i=>({order_id:newOrder.id,product_id:i.product_id,qty:i.qty,price:i.price}));
+    const{data:insertedItems}=await sb.from('order_items').insert(itemsToInsert).select();
+    if(insertedItems)orderItems.push(...insertedItems);
+
+    allOrders.unshift(newOrder);
+    newItems=[]; // reset
     checkShoppingList();
     showToast('✓ Pedido guardado');
     newQty=1;
@@ -816,7 +921,7 @@ function openOrderModal(orderId){
   const prod=products.find(p=>p.id===o.product_id);
   const cycle=CYCLES.find(c=>c.id===o.cycle_id);
   const stage=o.stage||'recibido';
-  const total=o.qty*o.price,paid=orderPaidAmount(orderId),pendPago=total-paid;
+  const total=orderTotal(o),paid=orderPaidAmount(orderId),pendPago=total-paid;
   const dateStr=new Date((o.order_date||o.created_at.slice(0,10))+'T12:00:00').toLocaleDateString('es-CR',{day:'numeric',month:'short',year:'numeric'});
   const pagos=orderPayments(orderId);
   const stageIdx=STAGES.indexOf(stage);
