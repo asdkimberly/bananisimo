@@ -990,8 +990,10 @@ function openOrderModal(orderId){
 
     <div style="display:flex;align-items:center;margin-bottom:16px;">${pipelineHTML}${isCancelled?`<div class="stage-step"><div class="stage-dot cancelled">✗</div><div class="stage-name cancelled">Cancelado</div></div>`:''}</div>
 
-    <div class="modal-row"><span class="modal-row-label">Producto</span><span class="modal-row-val">${prod?.name||''}</span></div>
-    <div class="modal-row"><span class="modal-row-label">Cantidad</span><span class="modal-row-val">${o.qty} loaf${o.qty>1?'s':''}</span></div>
+    <div class="modal-row" style="align-items:flex-start;">
+      <span class="modal-row-label">Orden</span>
+      <span class="modal-row-val">${(()=>{const items=getOrderItems(o.id);if(items.length>0)return items.map(i=>{const p=products.find(x=>x.id===i.product_id);return i.qty+' × '+(p?p.name:'?');}).join('<br>');return o.qty+' × '+(prod?.name||'');})()}</span>
+    </div>
     <div class="modal-row"><span class="modal-row-label">Total</span><span class="modal-row-val">${formatPrice(total)}</span></div>
     <div class="modal-row"><span class="modal-row-label">Entrega</span><span class="modal-row-val">${cycle?cycle.entrega:o.cycle_id}</span></div>
     ${o.notes?`<div class="modal-row"><span class="modal-row-label">Notas</span><span class="modal-row-val">${o.notes}</span></div>`:''}
