@@ -701,9 +701,10 @@ function renderNew(){
     <div class="form-group"><label class="form-label">Fecha del pedido</label>
       <input class="form-input" id="fn_date" type="date" value="${dateVal}" max="${today}">
     </div>
-    <datalist id="client_list">${clientSuggestions}</datalist>
-    <div class="form-group"><label class="form-label">Nombre del cliente</label>
-      <input class="form-input" id="fn_name" type="text" list="client_list" placeholder="Ej: María Rodríguez" autocomplete="off">
+    <div class="form-group">
+      <label class="form-label">Nombre del cliente</label>
+      <input class="form-input" id="fn_name" type="text" placeholder="Escribí para buscar..." autocomplete="off">
+      <div id="client_suggestions" style="display:none;background:var(--white);border:0.5px solid var(--border-strong);border-radius:var(--radius-sm);margin-top:4px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
     </div>
     <div class="form-group"><label class="form-label">WhatsApp (opcional)</label>
       <input class="form-input" id="fn_phone" type="tel" placeholder="8888-8888">
@@ -736,7 +737,7 @@ function renderNew(){
 
   // Listeners post-render
   document.getElementById('fn_date').addEventListener('change',renderNew);
-  document.getElementById('fn_name').addEventListener('change',()=>autoFillClient());
+  setupClientSearch();
   document.getElementById('btnAddItem').addEventListener('click',()=>{
     newItems.push({product_id:products[0]?.id,qty:1,price:products[0]?.price||0,name:products[0]?.name||''});
     renderNew();preserveFormFields();
@@ -784,7 +785,39 @@ function autoFillClient(){
   const phoneEl=document.getElementById('fn_phone');
   if(!nameEl||!phoneEl)return;
   const client=clients.find(c=>c.name.toLowerCase()===nameEl.value.trim().toLowerCase());
-  if(client&&client.phone&&!phoneEl.value)phoneEl.value=client.phone;
+  if(client&&client.phone)phoneEl.value=client.phone;
+}
+
+function setupClientSearch(){
+  const input=document.getElementById('fn_name');
+  const box=document.getElementById('client_suggestions');
+  if(!input||!box)return;
+  input.addEventListener('input',()=>{
+    const q=input.value.trim().toLowerCase();
+    if(q.length<1){box.style.display='none';return;}
+    const matches=clients.filter(c=>c.name.toLowerCase().includes(q)).slice(0,6);
+    if(!matches.length){box.style.display='none';return;}
+    box.innerHTML=matches.map(c=>`
+      <div data-client-id="${c.id}" style="padding:10px 14px;cursor:pointer;border-bottom:0.5px solid #F1EFE8;font-family:'Quicksand',sans-serif;">
+        <div style="font-size:14px;font-weight:700;color:var(--cacao);">${c.name}</div>
+        ${c.phone?`<div style="font-size:12px;color:var(--text-muted);">${c.phone}</div>`:''}
+      </div>`).join('');
+    box.style.display='block';
+    box.querySelectorAll('[data-client-id]').forEach(row=>{
+      row.addEventListener('click',()=>{
+        const client=clients.find(x=>x.id===row.dataset.clientId);
+        if(!client)return;
+        input.value=client.name;
+        const phoneEl=document.getElementById('fn_phone');
+        if(phoneEl&&client.phone)phoneEl.value=client.phone;
+        box.style.display='none';
+      });
+      row.addEventListener('mouseover',()=>row.style.background='var(--crema)');
+      row.addEventListener('mouseout',()=>row.style.background='');
+    });
+  });
+  // Cerrar al tocar fuera
+  document.addEventListener('click',(e)=>{if(!box.contains(e.target)&&e.target!==input)box.style.display='none';},{once:true,capture:true});
 }
 
 function updateTotal(){
