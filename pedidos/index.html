@@ -792,34 +792,41 @@ function setupClientSearch(){
   const input=document.getElementById('fn_name');
   const box=document.getElementById('client_suggestions');
   if(!input||!box)return;
+  if(!clients.length){box.style.display='none';return;}
 
-  function showSuggestions(){
+  let selecting=false;
+
+  function renderBox(){
     const q=input.value.trim().toLowerCase();
-    if(!q){box.style.display='none';return;}
-    const matches=clients.filter(c=>c.name.toLowerCase().includes(q)).slice(0,6);
+    const matches=q
+      ?clients.filter(c=>c.name.toLowerCase().includes(q))
+      :clients.slice(0,8);
     if(!matches.length){box.style.display='none';return;}
-    box.style.display='block';
+    box.style.cssText='display:block;position:relative;background:#fff;border:1.5px solid var(--dorado);border-radius:var(--radius-sm);margin-top:4px;z-index:500;';
     box.innerHTML='';
     matches.forEach(c=>{
       const row=document.createElement('div');
-      row.style.cssText='padding:11px 14px;cursor:pointer;border-bottom:0.5px solid #F1EFE8;';
-      row.innerHTML=`<div style="font-size:14px;font-weight:700;color:var(--cacao);">${c.name}</div>${c.phone?`<div style="font-size:12px;color:var(--text-muted);">${c.phone}</div>`:''}`;
-      // usar touchstart + mousedown para mobile
-      const select=()=>{
+      row.style.cssText='padding:12px 14px;cursor:pointer;border-bottom:0.5px solid #F1EFE8;-webkit-tap-highlight-color:var(--crema);';
+      row.innerHTML='<div style="font-size:14px;font-weight:700;color:var(--cacao);">'+c.name+'</div>'
+        +(c.phone?'<div style="font-size:12px;color:var(--text-muted);">📱 '+c.phone+'</div>':'');
+      const pick=()=>{
+        selecting=true;
         input.value=c.name;
         const p=document.getElementById('fn_phone');
-        if(p&&c.phone)p.value=c.phone;
+        if(p)p.value=c.phone||'';
         box.style.display='none';
+        setTimeout(()=>{selecting=false;},300);
       };
-      row.addEventListener('mousedown',e=>{e.preventDefault();select();});
-      row.addEventListener('touchstart',e=>{e.preventDefault();select();},{passive:false});
+      row.addEventListener('pointerdown',e=>{e.preventDefault();pick();});
       box.appendChild(row);
     });
   }
 
-  input.addEventListener('input',showSuggestions);
-  input.addEventListener('focus',showSuggestions);
-  input.addEventListener('blur',()=>setTimeout(()=>{box.style.display='none';},200));
+  input.addEventListener('input',renderBox);
+  input.addEventListener('focus',renderBox);
+  input.addEventListener('blur',()=>{
+    if(!selecting)setTimeout(()=>{box.style.display='none';},150);
+  });
 }
 
 function updateTotal(){
