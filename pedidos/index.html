@@ -1105,12 +1105,26 @@ async function eliminarPedido(){
 
 function openWhatsApp(){
   const o=allOrders.find(x=>x.id===currentOrderId);if(!o||!o.client_phone)return;
-  const prod=products.find(p=>p.id===o.product_id);
   const cycle=CYCLES.find(c=>c.id===o.cycle_id);
   const clean=o.client_phone.replace(/\D/g,'');
   const firstName=o.client_name.trim().split(' ')[0];
   const notaLinea=o.notes?`\n📝 ${o.notes}`:'';
-  const msg=encodeURIComponent(`Hola ${firstName}, Confirmamos la entrega de tu pedido de Bananísimo 🍌:\n📦 ${prod?.name||''} × ${o.qty}\n💰 Total: ${formatPrice(o.qty*o.price)}\n📅 Entrega: ${cycle?cycle.entrega:'coordinamos'}${notaLinea}\n ¡Que estés muy bien! 🤎`);
+  // Construir línea de productos — soporta multi-item
+  const items=getOrderItems(o.id);
+  let productosLinea='';
+  let total=0;
+  if(items.length>0){
+    productosLinea=items.map(i=>{
+      const p=products.find(x=>x.id===i.product_id);
+      return`📦 ${p?p.name:i.product_id} × ${i.qty}`;
+    }).join('\n');
+    total=items.reduce((s,i)=>s+i.qty*i.price,0);
+  } else {
+    const prod=products.find(p=>p.id===o.product_id);
+    productosLinea=`📦 ${prod?.name||''} × ${o.qty}`;
+    total=o.qty*o.price;
+  }
+  const msg=encodeURIComponent(`Hola ${firstName}, Confirmamos la entrega de tu pedido de Bananísimo 🍌:\n${productosLinea}\n💰 Total: ${formatPrice(total)}\n📅 Entrega: ${cycle?cycle.entrega:'coordinamos'}${notaLinea}\n¡Que estés muy bien! 🤎`);
   window.open(`https://wa.me/506${clean}?text=${msg}`,'_blank');
 }
 
