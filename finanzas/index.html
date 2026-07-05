@@ -513,7 +513,7 @@ function buildCiclosFromOrders(){
     if(!map[key]){
       map[key]={
         key, wk, cycleId,
-        dia: cycleId==='mar'||cycleId==='martes'?'martes':'jueves',
+        dia: 'viernes',
         fecha: wk,
         orders:[], panesTotal:0, panesTrad:0, panesSemi:0,
         ingresos:0, costos:0,
@@ -889,7 +889,7 @@ async function saveGasto(){
         const ciclosCalc=buildCiclosFromOrders();
         const cc=ciclosCalc.find(x=>x.key===key);
         if(cc&&!cc.dbCiclo){
-          const diaVal=cc.cycleId==='mar'||cc.cycleId==='martes'?'martes':'jueves';
+          const diaVal=cc.cycleId==='vie'||cc.cycleId==='viernes'?'viernes':'viernes';
           const{data:newCiclo,error:ec}=await sb.from('ciclos').insert({
             fecha:cc.fecha,dia:diaVal,estado:'abierto',
             panes_trad:cc.panesTrad,panes_semi:cc.panesSemi
